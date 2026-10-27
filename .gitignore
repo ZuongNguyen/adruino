@@ -1,0 +1,6 @@
+# Kết quả biên dịch
+build/
+*.exe
+*.o
+*.hex
+*.elf
