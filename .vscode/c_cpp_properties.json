@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "name": "Arduino giả lập (tests/mock)",
+      "includePath": ["${workspaceFolder}/tests/mock"],
+      "forcedInclude": ["${workspaceFolder}/tests/mock/Arduino.h"],
+      "cStandard": "c11",
+      "cppStandard": "gnu++11",
+      "intelliSenseMode": "windows-gcc-x64"
+    }
+  ],
+  "version": 4
+}
