@@ -12,6 +12,7 @@ Các prototype chạy trên **Arduino Uno**, mô phỏng bằng Wokwi hoặc Tin
 | 06 – 6 LED chớp so le | Nhóm LED lẻ (1, 3, 5) và chẵn (2, 4, 6) thay phiên chớp sáng rồi tắt dần | `prototype-06-6-led-chop-so-le/sketch.ino` |
 | 07 – 6 LED so le + chạy tăng dần | Như bản 06, thêm hiệu ứng LED lần lượt sáng dần từ trái qua phải đến khi sáng hết dãy; tự chuyển qua lại giữa 2 hiệu ứng | `prototype-07-6-led-so-le-chay-tang-dan/sketch.ino` |
 | 08 – 5 servo đồng bộ + lượn sóng | 5 servo cùng quay 0° ↔ 180°, rồi chuyển sang lượn sóng: lần lượt quay lên từ trái qua phải, lần lượt quay về; tự chuyển qua lại giữa 2 hiệu ứng | `prototype-08-5-servo-dong-bo-luon-song/sketch.ino` |
+| 09 – 5 servo đồng bộ | Mạch Tinkercad mới (servo phía trên Arduino): cả 5 servo cùng quay 0° ↔ 180°, dừng 0,5 giây mỗi đầu | `prototype-09-5-servo-dong-bo/sketch.ino` |
 
 ## Sơ đồ nối dây
 
@@ -103,6 +104,22 @@ Giữ nguyên mạch prototype 06. Thứ tự trong mảng `LED_PINS[] = {11, 10
 >
 > ⚠️ **Mạch thật:** 5 servo SG90 quay cùng lúc kéo dòng vượt xa 500 mA của cổng USB, Arduino sẽ tự reset hoặc servo giật. Cấp cho hàng nguồn breadboard một nguồn 5V ≥ 3A riêng, nối **chung GND** với Arduino, và bỏ dây 5V từ Arduino xuống hàng nguồn. Tinkercad không mô phỏng giới hạn này nên vẫn chạy bình thường.
 
+### Prototype 09
+
+Mạch mới, khác bản 08: 5 servo xếp từ trái sang phải phía trên Arduino, breadboard nằm dưới. Dây đỏ từ chân **5V** và dây nâu từ **GND** của Arduino nối sang hai hàng nguồn trên cùng của breadboard (+ và −); dây đỏ và dây nâu của từng servo cắm vào hai hàng đó.
+
+| Servo | Dây tín hiệu | Chân Arduino |
+|---|---|---|
+| 1 (trái cùng, cao nhất) | Xanh | **11** |
+| 2 | Xanh | **9** |
+| 3 | Xanh | **6** |
+| 4 | Xanh | **5** |
+| 5 (phải cùng) | Xanh | **3** |
+
+> Chân đọc từ ảnh mạch Tinkercad. Vì cả 5 servo nhận cùng một góc nên cắm lẫn thứ tự vẫn chạy đúng; chỉ cần mỗi servo nối một chân có trong `SERVO_PINS[] = {11, 9, 6, 5, 3}`.
+>
+> ⚠️ **Mạch thật:** giống bản 08, 5 servo quay cùng lúc cần nguồn 5V ≥ 3A riêng, nối **chung GND** với Arduino.
+
 ## Logic chính
 
 - Nút dùng `INPUT_PULLUP`: nhả đọc `HIGH`, nhấn đọc `LOW`, không cần điện trở ngoài.
@@ -115,6 +132,7 @@ Giữ nguyên mạch prototype 06. Thứ tự trong mảng `LED_PINS[] = {11, 10
 - Bản 06: hàm `envelope(t)` tính độ sáng theo thời gian trong lượt: sáng lên trong `ATTACK_MS` (0 = chớp sáng ngay), tắt dần trong `DECAY_MS`, nghỉ `GAP_MS`. Nhóm chẵn chạy trễ đúng nửa vòng so với nhóm lẻ nên hai nhóm sáng tắt so le. Mặc định một vòng là 1,6 giây; chỉ ghi `analogWrite()` khi độ sáng thay đổi.
 - Bản 07: chương trình chạy so le `SO_LE_ROUNDS` vòng (mặc định 3) rồi chạy tăng dần `CHAY_ROUNDS` vòng (mặc định 2), lặp lại; cả chương trình dài 10,4 giây. Chạy tăng dần: LED thứ i bắt đầu sáng dần sau `i × CHAY_STEP_MS`, cả dãy sáng hết sau 1,5 giây, giữ 0,5 giây rồi cùng tắt dần trong 0,6 giây. Mỗi hiệu ứng là một hàm tính độ sáng theo thời gian (`levelSoLe()`, `levelChay()`), nên thêm hiệu ứng mới chỉ cần viết thêm một hàm.
 - Bản 08: ghép cách tổ chức của bản 04 (mảng servo) và bản 07 (tính theo thời gian, tự chuyển hiệu ứng). Mỗi vòng có 4 đoạn: lượt lên 0° → 180°, dừng, lượt về 180° → 0°, dừng. Hàm `angleAt()` cho servo thứ i bắt đầu trễ `i × stepMs`: đồng bộ là `stepMs = 0` (quay hết 180° trong 2,7 giây như bản 04, dừng 0,5 giây), lượn sóng là `stepMs = 300` (mỗi servo quay hết 180° trong 1 giây, servo cuối tới nơi sau 2,2 giây). Chương trình chạy đồng bộ `DONG_BO_ROUNDS` vòng rồi lượn sóng `SONG_ROUNDS` vòng (mặc định 2 + 2, dài 23,6 giây). Vòng nào cũng bắt đầu và kết thúc ở 0° nên chuyển hiệu ứng không bị giật, và servo luôn dừng ít nhất 0,5 giây trước khi đổi chiều.
+- Bản 09: chỉ giữ hiệu ứng đồng bộ của bản 08. Hàm `angleAt(t)` tính một góc chung theo thời gian trong vòng (lượt lên 2,7 giây, dừng 0,5 giây, lượt về 2,7 giây, dừng 0,5 giây; một vòng 6,4 giây) và `writeAll()` gửi góc đó cho cả 5 servo trong cùng một lượt, chỉ khi góc thay đổi. Chỉnh tốc độ bằng `DONG_BO_MOVE_MS`, thời gian dừng bằng `DONG_BO_HOLD_MS`.
 
 ## Cách chạy
 

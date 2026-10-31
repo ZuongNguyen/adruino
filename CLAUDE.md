@@ -16,7 +16,7 @@ prototype-02-.../libraries.txt Thư viện cho Wokwi (LiquidCrystal I2C)
 tests/run_all.sh               Chạy toàn bộ 4 bước kiểm tra bên dưới
 tests/check_pins.py            Kiểm tra chân: PWM, xung đột Servo/Timer1, trùng chân, A4/A5 khi có I2C
 tests/compile_all.sh           Biên dịch thử mọi sketch bằng g++ với Arduino giả lập
-tests/test_NN_*.cpp            Chạy thử logic theo từng ms (bản 05, 06, 07, 08)
+tests/test_NN_*.cpp            Chạy thử logic theo từng ms (bản 05, 06, 07, 08, 09)
 tests/compile_uno.sh           Biên dịch thật cho Uno bằng arduino-cli, in Flash/RAM
 tests/mock/                    Arduino.h, Servo.h, Wire.h, LiquidCrystal_I2C.h giả lập + globals.cpp
 build/                         Kết quả biên dịch (git bỏ qua)
@@ -38,6 +38,7 @@ chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `ma
 | 06 | 6 LED chớp so le lẻ/chẵn (chân 11, 10, 9, 6, 5, 3) | Xong |
 | 07 | Như 06 + hiệu ứng chạy tăng dần trái → phải, tự chuyển hiệu ứng | Xong |
 | 08 | 5 servo: đồng bộ + lượn sóng trái → phải, tự chuyển hiệu ứng | Xong |
+| 09 | 5 servo quay đồng bộ cùng lúc, mạch mới (chân 11, 9, 6, 5, 3) | Xong |
 
 Ngày 27/10/2026, cả 8 bản qua `tests/run_all.sh`: chân, g++ giả lập, test logic 05–08, arduino-cli cho Uno.
 Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
@@ -45,12 +46,15 @@ Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
 **Ghi chú bản 08:** chân `SERVO_PINS[] = {3, 5, 6, 9, 10}` đọc từ ảnh mạch Tinkercad, chưa được người dùng
 xác nhận trên mạch thật. Mặc định 2 vòng đồng bộ + 2 vòng lượn sóng, cả chương trình 23,6 giây.
 
+**Ghi chú bản 09 (31/10/2026):** mạch Tinkercad mới, servo phía trên Arduino, `SERVO_PINS[] = {11, 9, 6, 5, 3}`
+đọc từ ảnh, chưa xác nhận trên mạch thật. Một vòng 6,4 giây. Cả 9 bản qua `tests/run_all.sh` ngày 31/10/2026.
+
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
 
 ## Quy ước code (giữ đúng khi viết prototype mới)
 
-- Thư mục mới: `prototype-NN-mo-ta-khong-dau/sketch.ino`, NN tăng dần (bản tiếp theo là 09).
+- Thư mục mới: `prototype-NN-mo-ta-khong-dau/sketch.ino`, NN tăng dần (bản tiếp theo là 10).
 - Đầu file: một dòng mô tả `– Arduino Uno`, rồi khối `// Mạch:` liệt kê từng dây nối, rồi mô tả hiệu ứng.
 - Comment tiếng Việt có dấu; tên hằng/hàm theo kiểu đã có (`SO_LE_`, `CHAY_`, `DONG_BO_`, `SONG_`,
   `levelSoLe()`, `angleAt()`), tên tiếng Việt không dấu khi là tên hiệu ứng.
