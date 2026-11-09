@@ -13,6 +13,10 @@ Các prototype chạy trên **Arduino Uno**, mô phỏng bằng Wokwi hoặc Tin
 | 07 – 6 LED so le + chạy tăng dần | Như bản 06, thêm hiệu ứng LED lần lượt sáng dần từ trái qua phải đến khi sáng hết dãy; tự chuyển qua lại giữa 2 hiệu ứng | `prototype-07-6-led-so-le-chay-tang-dan/sketch.ino` |
 | 08 – 5 servo đồng bộ + lượn sóng | 5 servo cùng quay 0° ↔ 180°, rồi chuyển sang lượn sóng: lần lượt quay lên từ trái qua phải, lần lượt quay về; tự chuyển qua lại giữa 2 hiệu ứng | `prototype-08-5-servo-dong-bo-luon-song/sketch.ino` |
 | 09 – 5 servo đồng bộ | Mạch Tinkercad mới (servo phía trên Arduino): cả 5 servo cùng quay 0° ↔ 180°, dừng 0,5 giây mỗi đầu | `prototype-09-5-servo-dong-bo/sketch.ino` |
+| 10 – 4 LED chẵn/lẻ, 3 nút | Bài 1.3 (thử với 4 LED): nút 1 bật LED chẵn, nút 2 bật LED lẻ, nút 3 đảo chẵn ↔ lẻ | `prototype-10-4-led-chan-le-3-nut/sketch.ino` |
+| 11 – 8 LED chẵn/lẻ, 3 nút | Bài 1.3 đủ 8 LED: nút 1 bật LED chẵn, nút 2 bật LED lẻ, nút 3 đảo chẵn ↔ lẻ | `prototype-11-8-led-chan-le-3-nut/sketch.ino` |
+| 12 – 3 servo, 2 nút | Bài 1.4: nút 1 cho 2 servo quay 90°, 1 servo quay 180°; nút 2 cho 2 servo quay 180°, 1 servo quay 90°; quay qua lại liên tục, đổi chiều mỗi 0,5 giây | `prototype-12-3-servo-2-nut/sketch.ino` |
+| 13 – 2 nút bật/tắt 2 LED | Nhấn nút 1 bật/tắt LED đỏ, nhấn nút 2 bật/tắt LED xanh; hai nút nối khác kiểu (kéo xuống và nối thẳng GND) | `prototype-13-2-nut-bat-tat-2-led/sketch.ino` |
 
 ## Sơ đồ nối dây
 
@@ -120,6 +124,95 @@ Mạch mới, khác bản 08: 5 servo xếp từ trái sang phải phía trên A
 >
 > ⚠️ **Mạch thật:** giống bản 08, 5 servo quay cùng lúc cần nguồn 5V ≥ 3A riêng, nối **chung GND** với Arduino.
 
+### Prototype 10
+
+Mạch Tinkercad bài 1.3: 4 LED bên trái breadboard, 4 nút bên phải. Dây đỏ từ **5V** và dây đen từ **GND** của Arduino nối vào hai hàng nguồn dưới; hai dây bên trái nối hàng nguồn dưới lên hàng nguồn trên.
+
+| LED (trái → phải) | Chân Arduino | Nhóm |
+|---|---|---|
+| 1 đỏ | **13** | lẻ |
+| 2 xanh dương | **12** | chẵn |
+| 3 xanh lá | **11** | lẻ |
+| 4 vàng | **10** | chẵn |
+
+Chân âm mỗi LED nối dây đen xuống hàng GND.
+
+| Nút (trái → phải) | Chân Arduino | Việc |
+|---|---|---|
+| 1 | **7** | LED chẵn sáng |
+| 2 | **6** | LED lẻ sáng |
+| 3 | **5** | Đảo chẵn ↔ lẻ |
+| 4 | 4 | Chưa dùng |
+
+Mỗi nút: một chân nối dây đỏ lên hàng **+5V**, chân kia nối chân Arduino và qua điện trở kéo xuống **GND** (nhả đọc `LOW`, nhấn đọc `HIGH`). Nếu nối nút kiểu bản 01 (chân Arduino ↔ GND, không điện trở) thì đổi `PRESSED = LOW`, code tự chuyển sang `INPUT_PULLUP`.
+
+> Chân đọc từ ảnh mạch Tinkercad. Với 4 LED, "chẵn/lẻ" theo vị trí (LED 2, 4) và theo số chân (12, 10) trùng nhau.
+>
+> ⚠️ **Mạch thật:** trong ảnh LED nối thẳng chân Arduino ↔ GND, chưa có điện trở. Thêm điện trở **220Ω** nối tiếp mỗi LED, nếu không LED và chân Arduino có thể hỏng.
+
+### Prototype 11
+
+Mạch Tinkercad bài 1.3 đủ 8 LED: 8 LED bên trái breadboard, 3 nút bên phải. Nguồn nối như bản 10 (5V, GND vào hàng nguồn dưới, hai dây bên trái nối lên hàng nguồn trên).
+
+| LED (trái → phải) | Chân Arduino | Nhóm |
+|---|---|---|
+| 1 vàng | **13** | lẻ |
+| 2 xanh dương | **12** | chẵn |
+| 3 xanh lá | **11** | lẻ |
+| 4 vàng | **10** | chẵn |
+| 5 cam | **9** | lẻ |
+| 6 trắng | **8** | chẵn |
+| 7 xanh lá | **7** | lẻ |
+| 8 xanh dương | **6** | chẵn |
+
+Chân âm mỗi LED nối dây đen xuống hàng GND.
+
+| Nút (trái → phải) | Chân Arduino | Việc |
+|---|---|---|
+| 1 | **4** | LED chẵn sáng |
+| 2 | **3** | LED lẻ sáng |
+| 3 | **2** | Đảo chẵn ↔ lẻ |
+
+Mỗi nút nối như bản 10: một chân dây đỏ lên **+5V**, chân kia vào chân Arduino và qua điện trở kéo xuống **GND** (`PRESSED = HIGH`).
+
+> Chân đọc từ ảnh mạch Tinkercad. "Chẵn/lẻ" theo vị trí (LED 2, 4, 6, 8) trùng với số chân (12, 10, 8, 6). Chân 13 còn nối với đèn L trên board nên đèn L sáng cùng LED 1.
+>
+> ⚠️ **Mạch thật:** trong ảnh LED vẫn chưa có điện trở. Thêm điện trở **220Ω** nối tiếp mỗi LED.
+
+### Prototype 12
+
+Mạch Tinkercad bài 1.4: 3 servo phía trên breadboard, 2 nút bên trái giữa Arduino và breadboard. Dây xanh lá từ **5V** và dây đen từ **GND** của Arduino nối vào hai hàng nguồn trên cùng của breadboard (+ và −); dây đỏ và dây đen của từng servo cắm vào hai hàng đó.
+
+| Servo (trái → phải) | Dây tín hiệu | Chân Arduino | Nút 1 | Nút 2 |
+|---|---|---|---|---|
+| 1 | Xanh lá | **9** | 0° ↔ 90° | 0° ↔ 180° |
+| 2 | Xanh lá | **10** | 0° ↔ 90° | 0° ↔ 180° |
+| 3 | Xanh lá | **11** | 0° ↔ 180° | 0° ↔ 90° |
+
+| Nút | Chân Arduino | Chân còn lại |
+|---|---|---|
+| 1 (nút dưới) | **3** (dây cam) | hàng **−** (GND, dây đen) |
+| 2 (nút trên) | **2** (dây cam) | hàng **−** (GND, dây đen) |
+
+Nút nối kiểu bản 01 (chân Arduino ↔ GND, không điện trở) nên code dùng `INPUT_PULLUP`, `PRESSED = LOW`. Dây cam và dây đen cắm vào **hai chân chéo nhau** của nút, cách nối này luôn đúng.
+
+> Chân đọc từ ảnh mạch Tinkercad. Muốn đổi vai hai nút (nút trên là nút 1) thì sửa `BUTTON_PINS[] = {2, 3}`; muốn servo khác là servo quay "lẻ" thì sửa bảng `OUT_ANGLES`.
+>
+> ⚠️ **Mạch thật:** 3 servo cùng quay vượt 500 mA của cổng USB, Arduino dễ tự reset. Cấp hàng nguồn breadboard bằng nguồn 5V ≥ 2A riêng, nối **chung GND** với Arduino, bỏ dây 5V từ Arduino xuống hàng +.
+
+### Prototype 13
+
+Mạch Tinkercad: 2 nút và 2 LED trên breadboard, xếp từ trái sang phải. Dây đỏ từ **5V** và dây đen từ **GND** của Arduino nối vào hai hàng nguồn dưới cùng (+ và −).
+
+| Linh kiện (trái → phải) | Chân Arduino | Cách nối | Nhấn đọc được |
+|---|---|---|---|
+| Nút 1 | **2** | Chân 2 qua điện trở kéo xuống **GND**, chân kia dây đỏ lên **+5V** | `HIGH` |
+| Nút 2 | **3** | Chân 3 nối nút, chân kia dây đen xuống **GND**, không điện trở | `LOW` (code bật `INPUT_PULLUP`) |
+| LED đỏ | **4** | Chân âm qua điện trở xuống **GND** | – |
+| LED xanh | **5** | Chân âm qua điện trở xuống **GND** | – |
+
+> Chân đọc từ ảnh mạch Tinkercad. Hai nút nối khác kiểu nên mảng `PRESSED[] = {HIGH, LOW}` ghi riêng mức nhấn của từng nút. Nếu nối lại nút 2 giống nút 1 (có điện trở kéo xuống, chân kia lên 5V) thì đổi thành `{HIGH, HIGH}`.
+
 ## Logic chính
 
 - Nút dùng `INPUT_PULLUP`: nhả đọc `HIGH`, nhấn đọc `LOW`, không cần điện trở ngoài.
@@ -133,6 +226,10 @@ Mạch mới, khác bản 08: 5 servo xếp từ trái sang phải phía trên A
 - Bản 07: chương trình chạy so le `SO_LE_ROUNDS` vòng (mặc định 3) rồi chạy tăng dần `CHAY_ROUNDS` vòng (mặc định 2), lặp lại; cả chương trình dài 10,4 giây. Chạy tăng dần: LED thứ i bắt đầu sáng dần sau `i × CHAY_STEP_MS`, cả dãy sáng hết sau 1,5 giây, giữ 0,5 giây rồi cùng tắt dần trong 0,6 giây. Mỗi hiệu ứng là một hàm tính độ sáng theo thời gian (`levelSoLe()`, `levelChay()`), nên thêm hiệu ứng mới chỉ cần viết thêm một hàm.
 - Bản 08: ghép cách tổ chức của bản 04 (mảng servo) và bản 07 (tính theo thời gian, tự chuyển hiệu ứng). Mỗi vòng có 4 đoạn: lượt lên 0° → 180°, dừng, lượt về 180° → 0°, dừng. Hàm `angleAt()` cho servo thứ i bắt đầu trễ `i × stepMs`: đồng bộ là `stepMs = 0` (quay hết 180° trong 2,7 giây như bản 04, dừng 0,5 giây), lượn sóng là `stepMs = 300` (mỗi servo quay hết 180° trong 1 giây, servo cuối tới nơi sau 2,2 giây). Chương trình chạy đồng bộ `DONG_BO_ROUNDS` vòng rồi lượn sóng `SONG_ROUNDS` vòng (mặc định 2 + 2, dài 23,6 giây). Vòng nào cũng bắt đầu và kết thúc ở 0° nên chuyển hiệu ứng không bị giật, và servo luôn dừng ít nhất 0,5 giây trước khi đổi chiều.
 - Bản 09: chỉ giữ hiệu ứng đồng bộ của bản 08. Hàm `angleAt(t)` tính một góc chung theo thời gian trong vòng (lượt lên 2,7 giây, dừng 0,5 giây, lượt về 2,7 giây, dừng 0,5 giây; một vòng 6,4 giây) và `writeAll()` gửi góc đó cho cả 5 servo trong cùng một lượt, chỉ khi góc thay đổi. Chỉnh tốc độ bằng `DONG_BO_MOVE_MS`, thời gian dừng bằng `DONG_BO_HOLD_MS`.
+- Bản 10: mỗi nút có bộ chống dội 50 ms riêng (mảng `lastReading[]`, `stableState[]`, `lastChangeMs[]`), chỉ tính lúc nhấn xuống nên giữ nút không lặp lại. Biến `mode` nhớ chế độ `TAT_HET` / `CHAN` / `LE`; nút 3 đổi `CHAN` → `LE`, còn lại → `CHAN` (lúc bật nguồn mọi LED tắt, nhấn nút 3 thì chẵn sáng trước). Hàm `ledOnIn(mode, i)` quyết định LED thứ i sáng hay tắt, nên lên 8 LED chỉ cần thêm chân vào `LED_PINS[]`.
+- Bản 11: giống hệt bản 10, chỉ đổi `LED_PINS[] = {13, 12, 11, 10, 9, 8, 7, 6}` và `BUTTON_PINS[] = {4, 3, 2}` theo mạch 8 LED. LED thứ i (đếm từ 0) là LED chẵn khi i lẻ.
+- Bản 12: chống dội nút giống bản 10. Nhấn một lần là chạy liên tục, không cần giữ. Bảng `OUT_ANGLES[nút][servo]` ghi góc quay tới của từng servo theo từng nút; mỗi vòng dài `2 × STEP_MS`: nửa đầu ở góc quay tới, nửa sau về `REST_ANGLE` (0°). Hàm `angleAt(mode, i, t)` tính góc theo thời gian từ đầu vòng, chỉ gửi lệnh khi góc đổi. Servo nhận lệnh ghi thẳng góc đích và tự quay hết tốc độ (SG90 cần ~0,3 giây cho 180°, nên 0,5 giây là đủ tới nơi và đứng lại). Đổi nút: đang ở góc quay tới thì về 0° ngay, đang ở 0° thì đứng nốt cho đủ 0,5 giây, nên servo luôn đứng ở 0° đủ 0,5 giây trước khi quay góc mới. Nhấn lại nút đang chạy thì giữ nguyên nhịp.
+- Bản 13: giống bản 01 nhưng cho 2 cặp nút–LED: nút thứ b bật/tắt LED thứ b (`BUTTON_PINS[b]` → `LED_PINS[b]`), mỗi nút có bộ chống dội 50 ms riêng như bản 10. Mảng `PRESSED[]` cho từng nút một mức nhấn: `HIGH` thì `pinMode(INPUT)`, `LOW` thì `pinMode(INPUT_PULLUP)`.
 
 ## Cách chạy
 
@@ -160,3 +257,8 @@ Lệnh này kiểm tra chân (PWM, xung đột servo với chân 9 và 10, trùn
 - Servo giật hoặc Arduino tự reset: servo lớn (MG996R…) hoặc nhiều servo cùng lúc cần nguồn 5V riêng, nối chung GND với Arduino.
 - Thư viện `Servo.h` dùng Timer1 nên `analogWrite()` trên chân 9 và 10 sẽ không hoạt động khi có servo; nếu cần PWM cho LED thì dùng các chân PWM khác (3, 5, 6, 11) chưa bị servo chiếm. Bản 08 đã dùng 3, 5, 6 cho servo nên chỉ còn chân **11** cho LED mờ dần.
 - Lượn sóng chạy sai thứ tự (không đi từ trái qua phải): đổi lại thứ tự trong `SERVO_PINS[]` cho khớp vị trí servo thật.
+- Bản 10 nhấn nút không có tác dụng hoặc LED tự đổi lung tung: kiểm tra kiểu nối nút. Nút có điện trở kéo xuống GND và chân kia lên 5V thì `PRESSED = HIGH`; nút nối thẳng chân Arduino ↔ GND thì `PRESSED = LOW`.
+- Nút Tinkercad nhấn không ăn hoặc như bị nhấn liên tục: hai dây đang cắm vào hai chân luôn nối với nhau bên trong nút. Chuyển một dây sang chân chéo đối diện.
+- Tinkercad/Arduino IDE báo `#error "Đây là file test chạy trên máy tính..."`, hoặc `No such file or directory` ở một dòng `#include` (`string`, `vector`, `../prototype-NN-.../sketch.ino`): đang dán nhầm file test trong `tests/`. File test chỉ chạy trên máy tính bằng `g++`; code dán vào mạch luôn là `prototype-NN-.../sketch.ino`.
+- Bản 13 một nút ăn, nút kia không ăn hoặc đèn tự bật/tắt: mức nhấn trong `PRESSED[]` không khớp kiểu nối của nút đó. Nút nối thẳng chân ↔ GND mà để `HIGH` thì chân bị thả nổi, đọc lung tung.
+- Bản 12 servo không quay hết 180° trước khi quay về: `STEP_MS` quá nhỏ (dưới ~350 ms với SG90), tăng lại.

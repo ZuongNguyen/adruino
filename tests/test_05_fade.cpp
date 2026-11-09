@@ -1,5 +1,8 @@
 // Chạy thử logic prototype 05 trong 2 chu kỳ, mỗi bước 1 ms.
 // Chạy từ thư mục gốc dự án: bash tests/run_all.sh
+#ifdef __AVR__   // Tinkercad, Wokwi, Arduino IDE biên dịch cho chip AVR
+#error "Đây là file test chạy trên máy tính, không dán vào mạch. Hãy dán file prototype-05-led-sang-dan-tat-dan/sketch.ino"
+#endif
 #include "Arduino.h"
 #include <stdlib.h>
 #include <vector>
