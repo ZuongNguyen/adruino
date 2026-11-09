@@ -2,7 +2,7 @@
 # Biên dịch thật mọi sketch cho Arduino Uno (ATmega328P) bằng arduino-cli, in dung lượng Flash/RAM.
 # Bắt lỗi mà bản giả lập g++ bỏ sót: thiếu thư viện, int 16 bit, tràn RAM 2 KB.
 # Chạy từ thư mục gốc dự án: bash tests/compile_uno.sh
-# Lần đầu cần: arduino-cli core install arduino:avr && arduino-cli lib install Servo "LiquidCrystal I2C"
+# Lần đầu cần: arduino-cli core install arduino:avr && arduino-cli lib install Servo "LiquidCrystal I2C" "Adafruit PWM Servo Driver Library"
 set -u
 cd "$(dirname "$0")/.."
 

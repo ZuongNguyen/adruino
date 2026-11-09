@@ -38,18 +38,19 @@ kiểm định bảo mật); plugin AI Skills, agentic-council, CodeRabbit (quá
 ```
 README.md                      Bảng prototype, sơ đồ nối dây, logic chính, cách chạy, xử lý sự cố
 prototype-NN-ten/sketch.ino    Mỗi prototype một thư mục, dán thẳng vào Wokwi/Tinkercad
-prototype-02-.../libraries.txt Thư viện cho Wokwi (LiquidCrystal I2C)
+prototype-02-.../libraries.txt Thư viện cho Wokwi (LiquidCrystal I2C; bản 14 có file tương tự cho PCA9685)
 tests/run_all.sh               Chạy toàn bộ 4 bước kiểm tra bên dưới
 tests/check_pins.py            Kiểm tra chân: PWM, xung đột Servo/Timer1, trùng chân, A4/A5 khi có I2C
 tests/compile_all.sh           Biên dịch thử mọi sketch bằng g++ với Arduino giả lập
-tests/test_NN_*.cpp            Chạy thử logic theo từng ms (bản 05–13)
+tests/test_NN_*.cpp            Chạy thử logic theo từng ms (bản 05–14)
 tests/compile_uno.sh           Biên dịch thật cho Uno bằng arduino-cli, in Flash/RAM
-tests/mock/                    Arduino.h, Servo.h, Wire.h, LiquidCrystal_I2C.h giả lập + globals.cpp
+tests/mock/                    Arduino.h, Servo.h, Wire.h, LiquidCrystal_I2C.h, Adafruit_PWMServoDriver.h giả lập + globals.cpp
 build/                         Kết quả biên dịch (git bỏ qua)
 ```
 
 Công cụ trên máy (cài 27/10/2026 bằng winget): **arduino-cli 1.5.1** (`C:\Program Files\Arduino CLI`, core
-`arduino:avr`, thư viện `Servo`, `LiquidCrystal I2C`) và **g++ 16.2** (WinLibs). Shell mở trước khi cài có thể
+`arduino:avr`, thư viện `Servo`, `LiquidCrystal I2C`, từ 09/11/2026 thêm `Adafruit PWM Servo Driver Library` 3.0.3
+và `Adafruit BusIO` 1.17.4) và **g++ 16.2** (WinLibs). Shell mở trước khi cài có thể
 chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `main`.
 
 ## Tiến trình
@@ -69,6 +70,7 @@ chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `ma
 | 11 | Bài 1.3 đủ 8 LED (13 → 6), nút 1, 2, 3 ở chân 4, 3, 2 | Xong |
 | 12 | Bài 1.4: 3 servo (9, 10, 11), nút 1 → 90/90/180°, nút 2 → 180/180/90°, đổi chiều mỗi 0,5 s (nút 3, 2) | Xong |
 | 13 | 2 nút bật/tắt 2 LED: nút 1 (chân 2) → LED đỏ (4), nút 2 (chân 3) → LED xanh (5) | Xong |
+| 14 | Mạch thử nghiệm 1 servo qua PCA9685 (kênh 0, I2C A4/A5): quét đều + đi từng nấc 45° | Xong |
 
 Ngày 27/10/2026, cả 8 bản qua `tests/run_all.sh`: chân, g++ giả lập, test logic 05–08, arduino-cli cho Uno.
 Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
@@ -98,13 +100,19 @@ nối khác kiểu: nút 1 kéo xuống (điện trở → GND, chân kia → 5V
 theo từng nút. LED có điện trở. Chọn kiểu nhấn để đổi trạng thái (toggle); người dùng chưa nói có muốn kiểu
 giữ nút mới sáng không. Cả 13 bản qua `tests/run_all.sh` ngày 02/11/2026.
 
+**Ghi chú bản 14 (09/11/2026):** tên thư mục do người dùng đặt ("mạch thử nghiệm 1 servo pca 9685"). Người dùng xác nhận
+"chân A0" trong đề là **kênh 0 của PCA9685**, không phải chân A0 Arduino. Dây đọc từ ảnh sơ đồ, chưa xác nhận trên mạch thật.
+Kiểu quay do mình chọn (đề để tùy ý): 2 vòng quét + 1 vòng đi từng nấc 45°, cả chương trình 20,8 giây. Dùng thư viện Adafruit;
+`begin()` có `delay()` bên trong nhưng chỉ chạy lúc khởi động. Tinkercad không có PCA9685 nên bản này chạy trên mạch thật, chưa
+thử trên phần cứng. Flash 20 %, RAM 12 %. Cả 14 bản qua `tests/run_all.sh` ngày 09/11/2026.
+
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
 
 ## Quy ước code (giữ đúng khi viết prototype mới)
 
 - Thư mục mới: `prototype-NN-ten-khong-dau/sketch.ino`, tên do người dùng đặt (xem mục bắt buộc ở đầu file),
-  NN tăng dần (bản tiếp theo là 14).
+  NN tăng dần (bản tiếp theo là 15).
 - Đầu file: một dòng mô tả `– Arduino Uno`, rồi khối `// Mạch:` liệt kê từng dây nối, rồi mô tả hiệu ứng.
 - Comment tiếng Việt có dấu; tên hằng/hàm theo kiểu đã có (`SO_LE_`, `CHAY_`, `DONG_BO_`, `SONG_`,
   `levelSoLe()`, `angleAt()`), tên tiếng Việt không dấu khi là tên hiệu ứng.

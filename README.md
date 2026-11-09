@@ -17,6 +17,7 @@ Các prototype chạy trên **Arduino Uno**, mô phỏng bằng Wokwi hoặc Tin
 | 11 – 8 LED chẵn/lẻ, 3 nút | Bài 1.3 đủ 8 LED: nút 1 bật LED chẵn, nút 2 bật LED lẻ, nút 3 đảo chẵn ↔ lẻ | `prototype-11-8-led-chan-le-3-nut/sketch.ino` |
 | 12 – 3 servo, 2 nút | Bài 1.4: nút 1 cho 2 servo quay 90°, 1 servo quay 180°; nút 2 cho 2 servo quay 180°, 1 servo quay 90°; quay qua lại liên tục, đổi chiều mỗi 0,5 giây | `prototype-12-3-servo-2-nut/sketch.ino` |
 | 13 – 2 nút bật/tắt 2 LED | Nhấn nút 1 bật/tắt LED đỏ, nhấn nút 2 bật/tắt LED xanh; hai nút nối khác kiểu (kéo xuống và nối thẳng GND) | `prototype-13-2-nut-bat-tat-2-led/sketch.ino` |
+| 14 – Mạch thử nghiệm 1 servo PCA9685 | 1 servo ở kênh 0 của mạch PCA9685 (I2C): quét đều 0° ↔ 180°, rồi đi từng nấc 45°; tự chuyển qua lại giữa 2 hiệu ứng | `prototype-14-mach-thu-nghiem-1-servo-pca-9685/sketch.ino`, `libraries.txt` |
 
 ## Sơ đồ nối dây
 
@@ -213,6 +214,28 @@ Mạch Tinkercad: 2 nút và 2 LED trên breadboard, xếp từ trái sang phả
 
 > Chân đọc từ ảnh mạch Tinkercad. Hai nút nối khác kiểu nên mảng `PRESSED[] = {HIGH, LOW}` ghi riêng mức nhấn của từng nút. Nếu nối lại nút 2 giống nút 1 (có điện trở kéo xuống, chân kia lên 5V) thì đổi thành `{HIGH, HIGH}`.
 
+### Prototype 14
+
+Servo không nối vào Arduino mà cắm vào mạch PCA9685; Arduino chỉ gửi lệnh qua I2C.
+
+| PCA9685 | Nối tới | Dây trong ảnh |
+|---|---|---|
+| GND | **GND** Arduino | Đen |
+| VCC | **5V** Arduino (chỉ nuôi chip) | Đỏ |
+| SDA | **A4** | Xanh |
+| SCL | **A5** | Vàng |
+| Cầu đấu xanh V+ / GND | Nguồn riêng cho servo, **5V** | Đỏ / đen từ jack DC |
+
+| Servo | Cắm vào cột **0** của PCA9685 |
+|---|---|
+| Dây cam (tín hiệu) | Hàng **PWM** (trên cùng) |
+| Dây đỏ | Hàng **V+** (giữa) |
+| Dây nâu | Hàng **GND** (dưới cùng) |
+
+> Chân đọc từ ảnh sơ đồ. "Kênh 0" là cột 0 trên hàng chân servo. Các cầu hàn A0–A5 ở góc mạch dùng để đổi địa chỉ I2C, không liên quan tới servo, cứ để nguyên.
+>
+> ⚠️ **Mạch thật:** cầu đấu xanh chịu **tối đa 6V**. Không cắm adapter 9–12V vào đây, servo và mạch sẽ hỏng. Dùng nguồn 5V ≥ 1A, đúng cực + và −. Không lấy nguồn servo từ chân 5V của Arduino. GND của nguồn servo và GND của Arduino đã nối chung qua mạch PCA9685 nhờ dây GND ở bảng trên, nên không được bỏ dây đó.
+
 ## Logic chính
 
 - Nút dùng `INPUT_PULLUP`: nhả đọc `HIGH`, nhấn đọc `LOW`, không cần điện trở ngoài.
@@ -230,6 +253,7 @@ Mạch Tinkercad: 2 nút và 2 LED trên breadboard, xếp từ trái sang phả
 - Bản 11: giống hệt bản 10, chỉ đổi `LED_PINS[] = {13, 12, 11, 10, 9, 8, 7, 6}` và `BUTTON_PINS[] = {4, 3, 2}` theo mạch 8 LED. LED thứ i (đếm từ 0) là LED chẵn khi i lẻ.
 - Bản 12: chống dội nút giống bản 10. Nhấn một lần là chạy liên tục, không cần giữ. Bảng `OUT_ANGLES[nút][servo]` ghi góc quay tới của từng servo theo từng nút; mỗi vòng dài `2 × STEP_MS`: nửa đầu ở góc quay tới, nửa sau về `REST_ANGLE` (0°). Hàm `angleAt(mode, i, t)` tính góc theo thời gian từ đầu vòng, chỉ gửi lệnh khi góc đổi. Servo nhận lệnh ghi thẳng góc đích và tự quay hết tốc độ (SG90 cần ~0,3 giây cho 180°, nên 0,5 giây là đủ tới nơi và đứng lại). Đổi nút: đang ở góc quay tới thì về 0° ngay, đang ở 0° thì đứng nốt cho đủ 0,5 giây, nên servo luôn đứng ở 0° đủ 0,5 giây trước khi quay góc mới. Nhấn lại nút đang chạy thì giữ nguyên nhịp.
 - Bản 13: giống bản 01 nhưng cho 2 cặp nút–LED: nút thứ b bật/tắt LED thứ b (`BUTTON_PINS[b]` → `LED_PINS[b]`), mỗi nút có bộ chống dội 50 ms riêng như bản 10. Mảng `PRESSED[]` cho từng nút một mức nhấn: `HIGH` thì `pinMode(INPUT)`, `LOW` thì `pinMode(INPUT_PULLUP)`.
+- Bản 14: PCA9685 phát xung 50 Hz, mỗi chu kỳ chia 4096 bước; `pulseTicks()` đổi góc thành số bước, dùng dải 544–2400 µs giống `Servo.h`. Chương trình quét đều `QUET_ROUNDS` vòng (lượt 2,7 giây, dừng 0,5 giây) rồi đi từng nấc `NAC_ROUNDS` vòng (4 nấc 45°, mỗi nấc quay 0,4 giây, dừng 0,6 giây), mặc định 2 + 1 vòng, dài 20,8 giây. Góc là hàm của thời gian (`angleQuet()`, `angleNac()`), chỉ gửi I2C khi góc đổi. Không thấy PCA9685 lúc khởi động thì đèn L nháy nhanh và không gửi lệnh. Đổi kênh bằng `SERVO_CHANNEL`.
 
 ## Cách chạy
 
@@ -237,7 +261,9 @@ Mạch Tinkercad: 2 nút và 2 LED trên breadboard, xếp từ trái sang phả
 
 **Tinkercad:** bấm **Code** (Mã), chuyển sang chế độ **Text** (Văn bản), xóa code cũ rồi dán `sketch.ino`. Thư viện `Servo.h` có sẵn, không cần cài.
 
-**Arduino IDE:** với bản 02, cài thư viện **LiquidCrystal I2C** (Frank de Brabander) trong Library Manager.
+**Arduino IDE:** với bản 02, cài thư viện **LiquidCrystal I2C** (Frank de Brabander) trong Library Manager. Với bản 14, cài **Adafruit PWM Servo Driver Library** (chọn cài kèm Adafruit BusIO).
+
+**Bản 14 cần mạch thật:** Tinkercad không có linh kiện PCA9685, nên nạp `sketch.ino` bằng Arduino IDE.
 
 **Kiểm tra trước khi dán** (cần `g++`, `python`, `arduino-cli`):
 
@@ -262,3 +288,6 @@ Lệnh này kiểm tra chân (PWM, xung đột servo với chân 9 và 10, trùn
 - Tinkercad/Arduino IDE báo `#error "Đây là file test chạy trên máy tính..."`, hoặc `No such file or directory` ở một dòng `#include` (`string`, `vector`, `../prototype-NN-.../sketch.ino`): đang dán nhầm file test trong `tests/`. File test chỉ chạy trên máy tính bằng `g++`; code dán vào mạch luôn là `prototype-NN-.../sketch.ino`.
 - Bản 13 một nút ăn, nút kia không ăn hoặc đèn tự bật/tắt: mức nhấn trong `PRESSED[]` không khớp kiểu nối của nút đó. Nút nối thẳng chân ↔ GND mà để `HIGH` thì chân bị thả nổi, đọc lung tung.
 - Bản 12 servo không quay hết 180° trước khi quay về: `STEP_MS` quá nhỏ (dưới ~350 ms với SG90), tăng lại.
+- Bản 14 đèn L nháy nhanh: Arduino không thấy PCA9685. Kiểm tra VCC, GND và xem SDA có vào A4, SCL có vào A5 không (hay bị đảo). Nếu đã hàn cầu địa chỉ thì sửa `PCA_ADDRESS`.
+- Bản 14 đèn L không nháy nhưng servo đứng yên: chưa cấp nguồn vào cầu đấu xanh, hoặc servo cắm ngược hàng (dây cam phải ở hàng PWM) hay cắm sai cột.
+- Bản 14 servo không đủ 180° hoặc kêu rè ở hai đầu: dao động của PCA9685 lệch theo từng mạch, chỉnh `SERVO_MIN_US`, `SERVO_MAX_US`.
