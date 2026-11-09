@@ -1,11 +1,17 @@
 ---
 name: arduino-prototype
-description: Quy trình làm hoặc sửa một prototype Arduino Uno trong dự án adruino (Wokwi/Tinkercad) – chốt mạch và chân, kiểm tra an toàn phần cứng, viết sketch theo quy ước, test giả lập, biên dịch thật cho Uno, cập nhật README. Dùng khi người dùng nói "làm bản 09", "thêm hiệu ứng", "sửa prototype NN", gửi ảnh mạch Tinkercad, hoặc hỏi nối dây/chân cho dự án này.
+description: Quy trình làm hoặc sửa một prototype Arduino Uno trong dự án adruino (Wokwi/Tinkercad) – chốt mạch và chân, kiểm tra an toàn phần cứng, viết sketch theo quy ước, test giả lập, biên dịch thật cho Uno, cập nhật README. Dùng khi người dùng nói "làm bản 09", "thêm hiệu ứng", "đổi chức năng bản NN", gửi ảnh mạch Tinkercad, hoặc hỏi nối dây/chân cho dự án này.
 ---
 
 # Làm prototype Arduino Uno
 
 Quy ước code và an toàn phần cứng nằm trong `CLAUDE.md` ở thư mục gốc – đọc lại trước khi viết. Trả lời bằng tiếng Việt.
+
+## 0. Hỏi tên dự án (bắt buộc, trước khi tạo file)
+
+- Hỏi người dùng tên dự án và **chờ trả lời**, kể cả khi đề bài và ảnh mạch đã rõ. Không tự đặt tên.
+- So tên với các thư mục `prototype-*` đã có. Trùng hoặc gần giống (cùng mạch, cùng bài) thì hỏi: sửa bản cũ hay tạo bản mới.
+- Chỉ sửa lỗi một bản đã có thì không tạo gì mới, chuyển sang skill `arduino-sua-loi`. Tối ưu thì dùng `arduino-toi-uu`.
 
 ## 1. Chốt mạch trước khi viết code
 
@@ -32,7 +38,7 @@ Tinkercad/Wokwi **không** mô phỏng giới hạn dòng, nên chạy được 
 
 ## 3. Viết sketch
 
-- Thư mục `prototype-NN-mo-ta-khong-dau/sketch.ino`, NN = số lớn nhất hiện có + 1.
+- Thư mục `prototype-NN-ten-khong-dau/sketch.ino`, tên lấy từ bước 0, NN = số lớn nhất hiện có + 1.
 - Đầu file: dòng mô tả `– Arduino Uno`, khối `// Mạch:`, mô tả hiệu ứng.
 - Không `delay()`; giá trị là hàm của thời gian trong vòng (`levelXxx(i, t)`, `angleAt(...)`).
 - Thông số chỉnh được gom lên đầu, đơn vị ms, có comment; số vòng mỗi hiệu ứng đặt 0 để bỏ.
