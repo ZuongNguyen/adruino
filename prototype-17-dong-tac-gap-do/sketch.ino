@@ -15,8 +15,8 @@
 //      Lần lượt từng servo, cách nhau SET_GAP_MS, để không cùng kéo dòng một lúc (dễ sụt nguồn, Arduino tự reset).
 //      Bước này servo quay hết tốc độ, vì chưa biết lúc đầu servo đang đứng ở góc nào để quay chậm từ đó.
 //      Servo chưa tới lượt thì chưa attach(): chân chưa có xung, chương trình chưa điều khiển servo đó.
-//   2. Chờ SET_HOLD_MS rồi chạy bảng DONG_TAC_1[] từ trên xuống. Mỗi servo quay đều theo tốc độ riêng TOC_DO_DEG_S[]
-//      (servo 1, 4: 30°/s; servo 2, 3: 20°/s).
+//   2. Chờ SET_HOLD_MS rồi chạy bảng DONG_TAC_1[] từ trên xuống. Servo quay đều theo bảng tốc độ TOC_DO_DEG_S[][] (theo bước
+//      và servo): bước 1 mọi servo 50°/s; bước 2, 3 và lúc về base servo 1, 4: 30°/s, servo 2, 3: 20°/s.
 //      Bước 1, lần lượt: servo 3: 30° -> 60°; servo 2: 15° -> 45°;
 //              servo 1: 90° -> 135° (trái 45°) -> 90° -> 45° (phải 45°) -> 90°; servo 4: 0° -> 180° -> 0°.
 //      Bước 2, cùng lúc: servo 2: 45° -> 130° và servo 3: 60° -> 120°.
@@ -28,12 +28,12 @@
 //   3. Về base: nghỉ NGHI_DOI_SERVO_MS rồi mọi servo còn lệch góc base cùng quay về base. setup() tự thêm phần này,
 //      nên sửa bảng thế nào thì cuối cùng servo vẫn về base. Sau đó đứng yên.
 // Với thông số mặc định (giây, tính từ lúc khởi động): góc base 0–1,5;
-//   bước 1: servo 3 3,0–4,5; servo 2 6,0–7,5; servo 1 9,0–10,5, 11,0–12,5, 13,0–14,5, 15,0–16,5; servo 4 18,0–24,0 và 24,5–30,5;
-//   bước 2: servo 2 32,0–36,25 và servo 3 32,0–35,0;
-//   bước 3: servo 4 37,75–41,75; servo 2, 3 43,25–47,5; servo 1 49,0–52,0; servo 2, 3 53,5–57,75; servo 4 59,25–63,25;
-//           servo 2, 3 64,75–69,0;
-//   về base: servo 1 180° -> 90° 70,5–73,5; servo 2 45° -> 15° và servo 3 60° -> 30° 70,5–72,0 (servo 4 đã ở 0°).
-//   Sau 73,5 s đứng yên.
+//   bước 1: servo 3 3,0–3,6; servo 2 5,1–5,7; servo 1 7,2–8,1, 8,6–9,5, 10,0–10,9, 11,4–12,3; servo 4 13,8–17,4 và 17,9–21,5;
+//   bước 2: servo 2 23,0–27,25 và servo 3 23,0–26,0;
+//   bước 3: servo 4 28,75–32,75; servo 2, 3 34,25–38,5; servo 1 40,0–43,0; servo 2, 3 44,5–48,75; servo 4 50,25–54,25;
+//           servo 2, 3 55,75–60,0;
+//   về base: servo 1 180° -> 90° 61,5–64,5; servo 2 45° -> 15° và servo 3 60° -> 30° 61,5–63,0 (servo 4 đã ở 0°).
+//   Sau 64,5 s đứng yên.
 
 #include <Servo.h>
 
@@ -42,19 +42,31 @@ const int     GOC_BASE[]   = {90, 15, 30, 0};   // góc base của servo 1 -> 4,
 const uint8_t SERVO_COUNT  = sizeof(SERVO_PINS) / sizeof(SERVO_PINS[0]);
 
 // ---- Thông số ----
-const unsigned long TOC_DO_DEG_S[]     = {30, 20, 20, 30};  // tốc độ servo 1 -> 4, độ mỗi giây, đủ 4 số: càng nhỏ càng chậm (0 = hết tốc độ)
-const unsigned long SET_GAP_MS         = 500;   // ms: servo sau về góc base muộn hơn servo trước bấy nhiêu (0 = cùng lúc)
+// Tốc độ quay, độ mỗi giây, theo bước (hàng) và servo (cột): càng nhỏ càng chậm, 0 = hết tốc độ.
+// Hàng thứ n là bước n (cột "bước" trong DONG_TAC_1[]); hàng CUỐI là lúc về base. Thêm bước thì thêm hàng ngay trên hàng về base.
+const unsigned long TOC_DO_DEG_S[][SERVO_COUNT] = {
+  // servo 1, 2,  3,  4
+  {50, 50, 50, 50},   // bước 1
+  {30, 20, 20, 30},   // bước 2
+  {30, 20, 20, 30},   // bước 3
+  {30, 20, 20, 30},   // về base
+};
+const uint8_t HANG_VE_BASE = sizeof(TOC_DO_DEG_S) / sizeof(TOC_DO_DEG_S[0]) - 1;   // chỉ số hàng về base (= số bước có tốc độ)
+
+const unsigned long SET_GAP_MS        = 500;   // ms: servo sau về góc base muộn hơn servo trước bấy nhiêu (0 = cùng lúc)
 const unsigned long SET_HOLD_MS        = 1500;  // ms: chờ sau khi servo cuối nhận góc base, rồi mới bắt đầu bước 1
 const unsigned long NGHI_DOI_SERVO_MS  = 1500;  // ms: nghỉ khi chuyển sang servo khác, và trước khi về base
 const unsigned long NGHI_CUNG_SERVO_MS = 500;   // ms: dừng khi cùng một servo đi tiếp hoặc đổi chiều
 
-// Các bước của động tác, chạy từ trên xuống: { số servo của người dùng (1 -> 4), góc quay tới, LAN_LUOT hoặc CUNG_LUC }.
+// Các bước của động tác, chạy từ trên xuống: { bước, số servo của người dùng (1 -> 4), góc quay tới, LAN_LUOT hoặc CUNG_LUC }.
+// Cột "bước" chỉ dùng để chọn hàng tốc độ trong TOC_DO_DEG_S[][]; ghi số bước chưa có hàng tốc độ thì dòng đó bị bỏ.
 // Góc xuất phát của mỗi dòng là góc servo đó đang đứng (góc base hoặc góc đích của dòng trước của nó).
 // LAN_LUOT: chờ các dòng trên quay xong hết, nghỉ, rồi mới quay. CUNG_LUC: bắt đầu cùng lúc với dòng ngay trên.
 // Trong một nhóm CUNG_LUC mỗi servo chỉ ghi một dòng (ghi hai lần thì dòng sau tự chờ như LAN_LUOT).
 // KHÔNG cần ghi dòng về base ở cuối: setup() tự thêm.
 // Servo 1: coi tăng góc là quay sang TRÁI. Nếu trên mạch thấy ngược bên thì đổi 135 và 45 cho nhau, và 180 ở bước 3 thành 0.
 struct BuocQuay {
+  uint8_t buoc;
   uint8_t servo;
   int goc;
   bool cungLuc;
@@ -63,27 +75,27 @@ const bool LAN_LUOT = false;
 const bool CUNG_LUC = true;
 const BuocQuay DONG_TAC_1[] = {
   // Bước 1: lần lượt từng servo
-  {3, 60,  LAN_LUOT},   // 1. servo 3: 30° -> 60°
-  {2, 45,  LAN_LUOT},   // 2. servo 2: 15° -> 45°
-  {1, 135, LAN_LUOT},   // 3. servo 1: 90° -> 135° (sang trái 45°)
-  {1, 90,  LAN_LUOT},   //             về giữa 90°
-  {1, 45,  LAN_LUOT},   //             sang phải 45° (45°)
-  {1, 90,  LAN_LUOT},   //             về giữa 90°
-  {4, 180, LAN_LUOT},   // 4. servo 4: 0° -> 180°
-  {4, 0,   LAN_LUOT},   //             rồi về 0°
+  {1, 3, 60,  LAN_LUOT},   // 1. servo 3: 30° -> 60°
+  {1, 2, 45,  LAN_LUOT},   // 2. servo 2: 15° -> 45°
+  {1, 1, 135, LAN_LUOT},   // 3. servo 1: 90° -> 135° (sang trái 45°)
+  {1, 1, 90,  LAN_LUOT},   //             về giữa 90°
+  {1, 1, 45,  LAN_LUOT},   //             sang phải 45° (45°)
+  {1, 1, 90,  LAN_LUOT},   //             về giữa 90°
+  {1, 4, 180, LAN_LUOT},   // 4. servo 4: 0° -> 180°
+  {1, 4, 0,   LAN_LUOT},   //             rồi về 0°
   // Bước 2: servo 2 và servo 3 cùng lúc
-  {2, 130, LAN_LUOT},   // servo 2: 45° -> 130°
-  {3, 120, CUNG_LUC},   // servo 3: 60° -> 120°, bắt đầu cùng lúc với servo 2
+  {2, 2, 130, LAN_LUOT},   // servo 2: 45° -> 130°
+  {2, 3, 120, CUNG_LUC},   // servo 3: 60° -> 120°, bắt đầu cùng lúc với servo 2
   // Bước 3: servo 2, 3 vẫn giữ 130°/120° của bước 2
-  {4, 120, LAN_LUOT},   // 1. servo 4: 0° -> 120° rồi giữ
-  {2, 45,  LAN_LUOT},   // 2. servo 2, 3 cùng lúc về góc của bước 1: servo 2 130° -> 45°
-  {3, 60,  CUNG_LUC},   //                                        servo 3 120° -> 60°
-  {1, 180, LAN_LUOT},   // 3. servo 1: 90° -> 180° (sang trái 90°) rồi giữ
-  {2, 130, LAN_LUOT},   // 4. servo 2, 3 cùng lúc làm lại bước 2: servo 2 45° -> 130°
-  {3, 120, CUNG_LUC},   //                                        servo 3 60° -> 120°
-  {4, 0,   LAN_LUOT},   // 5. servo 4: 120° -> 0°
-  {2, 45,  LAN_LUOT},   // 6. servo 2, 3 cùng lúc về góc của bước 1: servo 2 130° -> 45°
-  {3, 60,  CUNG_LUC},   //                                        servo 3 120° -> 60°
+  {3, 4, 120, LAN_LUOT},   // 1. servo 4: 0° -> 120° rồi giữ
+  {3, 2, 45,  LAN_LUOT},   // 2. servo 2, 3 cùng lúc về góc của bước 1: servo 2 130° -> 45°
+  {3, 3, 60,  CUNG_LUC},   //                                        servo 3 120° -> 60°
+  {3, 1, 180, LAN_LUOT},   // 3. servo 1: 90° -> 180° (sang trái 90°) rồi giữ
+  {3, 2, 130, LAN_LUOT},   // 4. servo 2, 3 cùng lúc làm lại bước 2: servo 2 45° -> 130°
+  {3, 3, 120, CUNG_LUC},   //                                        servo 3 60° -> 120°
+  {3, 4, 0,   LAN_LUOT},   // 5. servo 4: 120° -> 0°
+  {3, 2, 45,  LAN_LUOT},   // 6. servo 2, 3 cùng lúc về góc của bước 1: servo 2 130° -> 45°
+  {3, 3, 60,  CUNG_LUC},   //                                        servo 3 120° -> 60°
   // Hết bước 3: setup() tự thêm phần về base (servo 1 180° -> 90°, servo 2 -> 15°, servo 3 -> 30°)
 };
 const uint8_t BUOC_COUNT = sizeof(DONG_TAC_1) / sizeof(DONG_TAC_1[0]);
@@ -103,8 +115,8 @@ unsigned long lichKetThuc = 0;             // lúc dòng quay xong muộn nhất
 bool xong = false;                         // đã về base xong, loop() không còn việc gì
 unsigned long mocKhoiDong = 0;             // millis() lúc setup()
 
-// Thêm một dòng vào lịch: servo i quay từ góc đang đứng tới góc den, bắt đầu lúc batDau
-void themLich(uint8_t i, int den, unsigned long batDau) {
+// Thêm một dòng vào lịch: servo i quay từ góc đang đứng tới góc den, bắt đầu lúc batDau, tốc độ tocDo (độ/giây, 0 = hết tốc độ)
+void themLich(uint8_t i, int den, unsigned long batDau, unsigned long tocDo) {
   if (lichCount >= LICH_MAX) return;
   int doQuay = den - gocSau[i];
   if (doQuay < 0) doQuay = -doQuay;
@@ -112,7 +124,7 @@ void themLich(uint8_t i, int den, unsigned long batDau) {
   lichTu[lichCount]       = gocSau[i];
   lichDen[lichCount]      = den;
   lichBatDau[lichCount]   = batDau;
-  lichThoiGian[lichCount] = TOC_DO_DEG_S[i] > 0 ? (unsigned long)doQuay * 1000UL / TOC_DO_DEG_S[i] : 0;
+  lichThoiGian[lichCount] = tocDo > 0 ? (unsigned long)doQuay * 1000UL / tocDo : 0;
   unsigned long xongDong = batDau + lichThoiGian[lichCount];
   if (xongDong > lichKetThuc) lichKetThuc = xongDong;
   gocSau[i] = den;
@@ -142,12 +154,14 @@ void setup() {
   for (uint8_t k = 0; k < BUOC_COUNT; k++) {
     uint8_t i = DONG_TAC_1[k].servo - 1;   // số servo 1 -> 4 đổi thành chỉ số mảng 0 -> 3
     if (i >= SERVO_COUNT) continue;        // ghi nhầm số servo (0 hoặc lớn hơn 4): bỏ dòng này
+    uint8_t b = DONG_TAC_1[k].buoc;        // bước n dùng hàng n - 1 của TOC_DO_DEG_S[][]
+    if (b == 0 || b > HANG_VE_BASE) continue;   // ghi nhầm số bước (0 hoặc chưa có hàng tốc độ): bỏ dòng này
     if (servoTruoc != 0 && (!DONG_TAC_1[k].cungLuc || (trongNhom & (1 << i)))) {
       // Nhóm mới: chờ mọi dòng trước quay xong, rồi nghỉ
       batDauNhom = lichKetThuc + (DONG_TAC_1[k].servo == servoTruoc ? NGHI_CUNG_SERVO_MS : NGHI_DOI_SERVO_MS);
       trongNhom = 0;
     }
-    themLich(i, DONG_TAC_1[k].goc, batDauNhom);
+    themLich(i, DONG_TAC_1[k].goc, batDauNhom, TOC_DO_DEG_S[b - 1][i]);
     trongNhom |= (1 << i);
     servoTruoc = DONG_TAC_1[k].servo;
   }
@@ -155,7 +169,7 @@ void setup() {
   // Về base: sau khi mọi dòng trên xong và nghỉ NGHI_DOI_SERVO_MS, servo nào còn lệch góc base thì cùng quay về
   batDauNhom = lichKetThuc + NGHI_DOI_SERVO_MS;
   for (uint8_t i = 0; i < SERVO_COUNT; i++) {
-    if (gocSau[i] != GOC_BASE[i]) themLich(i, GOC_BASE[i], batDauNhom);
+    if (gocSau[i] != GOC_BASE[i]) themLich(i, GOC_BASE[i], batDauNhom, TOC_DO_DEG_S[HANG_VE_BASE][i]);
   }
 
   mocKhoiDong = millis();

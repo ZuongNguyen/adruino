@@ -208,7 +208,12 @@ tốc độ lên khoảng 30 độ trên giây". Cách hiểu (chưa hỏi lại
 dương như "trái 45°" ở bước 1) → 180°, giữ tới lúc về base; servo 2, 3 mỗi lần quay đều cùng lúc (`CUNG_LUC`); tốc độ 30°/s đặt trong
 `TOC_DO_DEG_S[] = {30, 20, 20, 30}` nên áp cho servo 1, 4 ở mọi bước. Lịch: bước 1 3,0–30,5 s, bước 2 32,0–36,25 s, bước 3 37,75–69,0 s,
 về base 70,5–73,5 s (servo 1, 2, 3 cùng về). ChatGPT báo ĐẠT vòng 1, thêm kiểm giữ góc giữa các bước vào `test_17_dong_tac_gap_do.cpp`;
-`LICH_MAX` = 23, dùng 22 dòng. Flash 10 %, RAM 24 %. Chưa thử trên mạch thật.
+`LICH_MAX` = 23, dùng 22 dòng. Flash 10 %, RAM 24 %. Người dùng duyệt, commit a642f7f.
+Sau đó người dùng bảo "tăng tốc bước 1 lên cỡ 50 độ/s": tốc độ giờ theo **bước và servo**, bảng `TOC_DO_DEG_S[][SERVO_COUNT]` mỗi hàng
+một bước, hàng cuối dùng khi về base (`HANG_VE_BASE`); mỗi dòng `DONG_TAC_1[]` thêm cột bước đầu tiên `{bước, servo, góc, kiểu}`.
+Bước 1 = 50°/s cho cả 4 servo (kể cả servo 2, 3); bước 2, 3 và về base giữ 30/20/20/30. Lịch: bước 1 3,0–21,5 s, bước 2 23,0–27,25 s,
+bước 3 28,75–60,0 s, về base 61,5–64,5 s. ChatGPT báo ĐẠT vòng 1, cập nhật test theo bảng tốc độ hai chiều, `run_all.sh` thử thêm
+số bước sai 0/4/255 và ma trận tốc độ khác nhau từng ô. Flash 10 %, RAM 27 %. Chưa thử trên mạch thật.
 
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.

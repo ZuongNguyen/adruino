@@ -26,33 +26,42 @@
 #endif
 
 struct ExpectedMove {
-  int servo, from, to, group;
+  int servo, from, to, group, speedRow;
+  unsigned long speed;
   uint64_t begin, end;
   bool returning;
 };
 std::vector<ExpectedMove> moves;
+const size_t SPEED_ROWS = sizeof(TOC_DO_DEG_S) / sizeof(TOC_DO_DEG_S[0]);
 const int UNATTACHED_ANGLE = -123;
 uint64_t moveStart, finalEnd;
 bool duplicateFallback = false, longestNotLast = false;
-int invalidRows = 0, userRows = 0, returnRows = 0;
+int invalidRows = 0, invalidStepRows = 0, invalidServoRows = 0, userRows = 0, returnRows = 0;
 
 uint32_t clockAt(uint32_t start, uint64_t elapsed) {
   return (uint32_t)((uint64_t)start + elapsed);
 }
 uint64_t attachAt(int servo) { return (uint64_t)servo * SET_GAP_MS; }
 
-ExpectedMove expectedMove(int servo, int from, int to, int group, uint64_t begin, bool returning) {
+ExpectedMove expectedMove(int servo, int from, int to, int group, int speedRow, uint64_t begin, bool returning) {
+  const unsigned long speed = TOC_DO_DEG_S[speedRow][servo];
   const uint64_t distance = abs(to - from);
-  const uint64_t span = TOC_DO_DEG_S[servo] == 0 ? 0 : distance * 1000 / TOC_DO_DEG_S[servo];
-  ExpectedMove m = {servo, from, to, group, begin, begin + span, returning};
+  const uint64_t span = speed == 0 ? 0 : distance * 1000 / speed;
+  ExpectedMove m = {servo, from, to, group, speedRow, speed, begin, begin + span, returning};
   return m;
 }
 
 void makeExpectedMoves() {
   moves.clear();
+  duplicateFallback = longestNotLast = false;
+  invalidRows = invalidStepRows = invalidServoRows = userRows = returnRows = 0;
   std::vector<BuocQuay> valid;
   for (size_t k = 0; k < sizeof(DONG_TAC_1) / sizeof(DONG_TAC_1[0]); ++k) {
-    if (DONG_TAC_1[k].servo < 1 || DONG_TAC_1[k].servo > SERVO_COUNT) ++invalidRows;
+    const bool badServo = DONG_TAC_1[k].servo < 1 || DONG_TAC_1[k].servo > SERVO_COUNT;
+    const bool badStep = DONG_TAC_1[k].buoc < 1 || DONG_TAC_1[k].buoc >= SPEED_ROWS;
+    if (badServo) ++invalidServoRows;
+    if (badStep) ++invalidStepRows;
+    if (badServo || badStep) ++invalidRows;
     else valid.push_back(DONG_TAC_1[k]);
   }
   userRows = (int)valid.size();
@@ -77,7 +86,7 @@ void makeExpectedMoves() {
     uint64_t end = begin;
     for (size_t row = first; row < past; ++row) {
       const int i = valid[row].servo - 1;
-      ExpectedMove m = expectedMove(i, position[i], valid[row].goc, group, begin, false);
+      ExpectedMove m = expectedMove(i, position[i], valid[row].goc, group, valid[row].buoc - 1, begin, false);
       moves.push_back(m);
       position[i] = m.to;
       end = std::max(end, m.end);
@@ -90,7 +99,7 @@ void makeExpectedMoves() {
   const uint64_t returnBegin = finalEnd + NGHI_DOI_SERVO_MS;
   for (int i = 0; i < SERVO_COUNT; ++i) {
     if (position[i] == GOC_BASE[i]) continue;
-    ExpectedMove m = expectedMove(i, position[i], GOC_BASE[i], group, returnBegin, true);
+    ExpectedMove m = expectedMove(i, position[i], GOC_BASE[i], group, SPEED_ROWS - 1, returnBegin, true);
     moves.push_back(m);
     finalEnd = std::max(finalEnd, m.end);
     ++returnRows;
@@ -115,10 +124,18 @@ int expectedAngle(int servo, uint64_t elapsed) {
 bool correctConfiguration() {
   const uint8_t pins[] = {5, 6, 9, 10};
   const int base[] = {90, 15, 30, 0};
-  const unsigned long speeds[] = {30, 20, 20, 30};
+  const unsigned long speeds[][4] = {
+#if defined(TEST_17_CUSTOM_TABLE)
+    // Mọi ô khác nhau: bắt lấy nhầm hàng bước 2/3/về base, vốn trùng tốc độ ở cấu hình mặc định.
+    {5, 10, 20, 25}, {40, 50, 100, 125}, {200, 250, 500, 1000}, {1, 2, 4, 8}
+#else
+    {50, 50, 50, 50}, {30, 20, 20, 30}, {30, 20, 20, 30}, {30, 20, 20, 30}
+#endif
+  };
   if (ULONG_MAX != UINT32_MAX || SERVO_COUNT != sizeof(pins) ||
       sizeof(GOC_BASE) / sizeof(GOC_BASE[0]) != SERVO_COUNT ||
-      sizeof(TOC_DO_DEG_S) / sizeof(TOC_DO_DEG_S[0]) != SERVO_COUNT ||
+      SPEED_ROWS != sizeof(speeds) / sizeof(speeds[0]) || HANG_VE_BASE != SPEED_ROWS - 1 ||
+      sizeof(TOC_DO_DEG_S[0]) / sizeof(TOC_DO_DEG_S[0][0]) != SERVO_COUNT ||
       BUOC_COUNT != sizeof(DONG_TAC_1) / sizeof(DONG_TAC_1[0]) ||
       LICH_MAX != BUOC_COUNT + SERVO_COUNT ||
       sizeof(lichServo) / sizeof(lichServo[0]) != LICH_MAX ||
@@ -129,11 +146,13 @@ bool correctConfiguration() {
       NGHI_DOI_SERVO_MS != 1500 || NGHI_CUNG_SERVO_MS != 500 || LAN_LUOT || !CUNG_LUC) return false;
   for (int i = 0; i < SERVO_COUNT; ++i) {
     if (SERVO_PINS[i] != pins[i] || GOC_BASE[i] != base[i]) return false;
+    for (size_t row = 0; row < SPEED_ROWS; ++row) {
 #if defined(TEST_17_ZERO_SPEED) || defined(TEST_17_ZERO_BOTH)
-    if (TOC_DO_DEG_S[i] != 0) return false;
+      if (TOC_DO_DEG_S[row][i] != 0) return false;
 #else
-    if (TOC_DO_DEG_S[i] != speeds[i]) return false;
+      if (TOC_DO_DEG_S[row][i] != speeds[row][i]) return false;
 #endif
+    }
   }
 #if defined(TEST_17_ZERO_GAP) || defined(TEST_17_ZERO_BOTH)
   if (SET_GAP_MS != 0) return false;
@@ -142,6 +161,7 @@ bool correctConfiguration() {
 #endif
 #if !defined(TEST_17_CUSTOM_TABLE) && !defined(TEST_17_EMPTY_TABLE) && !defined(TEST_17_INVALID_TABLE)
   // Dữ liệu đề bài được đối chiếu riêng; mọi mốc/thời lượng kiểm thử vẫn tính từ sketch.
+  const int steps[] = {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3};
   const int movers[] = {3, 2, 1, 1, 1, 1, 4, 4, 2, 3, 4, 2, 3, 1, 2, 3, 4, 2, 3};
   const int targets[] = {60, 45, 135, 90, 45, 90, 180, 0, 130, 120, 120, 45, 60, 180, 130, 120, 0, 45, 60};
   const int simultaneousRows[] = {9, 12, 15, 18}; // chỉ số từ 0 của các dòng servo 3 đi cùng servo 2
@@ -150,7 +170,7 @@ bool correctConfiguration() {
     const bool simultaneous = std::find(simultaneousRows, simultaneousRows +
       sizeof(simultaneousRows) / sizeof(simultaneousRows[0]), k) != simultaneousRows +
       sizeof(simultaneousRows) / sizeof(simultaneousRows[0]);
-    if (DONG_TAC_1[k].servo != movers[k] || DONG_TAC_1[k].goc != targets[k] ||
+    if (DONG_TAC_1[k].buoc != steps[k] || DONG_TAC_1[k].servo != movers[k] || DONG_TAC_1[k].goc != targets[k] ||
         DONG_TAC_1[k].cungLuc != simultaneous) return false;
   }
 #endif
@@ -159,17 +179,34 @@ bool correctConfiguration() {
 
 bool fixtureCoverage() {
 #if defined(TEST_17_CUSTOM_TABLE)
-  return duplicateFallback && longestNotLast && returnRows == SERVO_COUNT && invalidRows == 0;
+  bool seenSteps[SPEED_ROWS] = {};
+  bool mixedStepsInGroup = false;
+  for (size_t k = 0; k < moves.size(); ++k) {
+    seenSteps[moves[k].speedRow] = true;
+    if (k && moves[k].group == moves[k - 1].group && moves[k].speedRow != moves[k - 1].speedRow)
+      mixedStepsInGroup = true;
+  }
+  for (size_t row = 0; row < SPEED_ROWS; ++row) if (!seenSteps[row]) return false;
+  return duplicateFallback && longestNotLast && mixedStepsInGroup &&
+    returnRows == SERVO_COUNT && invalidRows == 0;
 #elif defined(TEST_17_EMPTY_TABLE)
   return BUOC_COUNT == 0 && moves.empty() && returnRows == 0;
 #elif defined(TEST_17_INVALID_TABLE)
   bool zero = false, tooLarge = false, largest = false;
+  bool zeroStep = false, tooLargeStep = false, largestStep = false;
   for (int k = 0; k < BUOC_COUNT; ++k) {
     zero = zero || DONG_TAC_1[k].servo == 0;
     tooLarge = tooLarge || DONG_TAC_1[k].servo == SERVO_COUNT + 1;
     largest = largest || DONG_TAC_1[k].servo == UINT8_MAX;
+    // Bước sai phải đi kèm số servo đúng để test thực sự đi qua kiểm tra số bước.
+    if (DONG_TAC_1[k].servo >= 1 && DONG_TAC_1[k].servo <= SERVO_COUNT) {
+      zeroStep = zeroStep || DONG_TAC_1[k].buoc == 0;
+      tooLargeStep = tooLargeStep || DONG_TAC_1[k].buoc == SPEED_ROWS;
+      largestStep = largestStep || DONG_TAC_1[k].buoc == UINT8_MAX;
+    }
   }
-  return zero && tooLarge && largest && invalidRows > 0 && userRows > 0 && returnRows > 0;
+  return zero && tooLarge && largest && zeroStep && tooLargeStep && largestStep &&
+    invalidServoRows > 0 && invalidStepRows > 0 && userRows > 0 && returnRows > 0;
 #else
   return invalidRows == 0 && returnRows == 3 && moves.size() == BUOC_COUNT + 3U &&
     moves[userRows].returning && moves[userRows].servo == 0;
@@ -183,8 +220,9 @@ bool checkPlan() {
     const ExpectedMove &m = moves[k];
     if (lichServo[k] != m.servo || lichTu[k] != m.from || lichDen[k] != m.to ||
         lichBatDau[k] != m.begin - moveStart || lichThoiGian[k] != m.end - m.begin) {
-      printf("  Lịch sai ở dòng %u: servo=%u, từ=%d, đến=%d, bắt đầu=%lu, thời lượng=%lu\n",
-        (unsigned)k + 1, lichServo[k] + 1, lichTu[k], lichDen[k], lichBatDau[k], lichThoiGian[k]);
+      printf("  Lịch sai ở dòng %u: servo=%u, từ=%d, đến=%d, bắt đầu=%lu, thời lượng=%lu; cần hàng %d tốc độ %lu\n",
+        (unsigned)k + 1, lichServo[k] + 1, lichTu[k], lichDen[k], lichBatDau[k], lichThoiGian[k],
+        m.speedRow + 1, m.speed);
       return false;
     }
   }
@@ -273,7 +311,7 @@ bool runStartup(uint32_t start, unsigned long expectedWrap, const char *name) {
           for (size_t k = 0; k < moves.size(); ++k) {
             const ExpectedMove &m = moves[k];
             if (m.servo != i || elapsed < m.begin || elapsed > m.end || m.from == m.to) continue;
-            const uint64_t speed = TOC_DO_DEG_S[i];
+            const uint64_t speed = m.speed;
             const uint64_t limit = speed == 0 ? abs(m.to - m.from) : (speed + 999) / 1000;
             // Góc lệnh là số nguyên: cho phép lượng tử hóa tối đa dưới 1 độ khi xét tốc độ tích lũy.
             const uint64_t travelled = abs(servo_angle[slot] - m.from);
@@ -327,7 +365,7 @@ bool runStartup(uint32_t start, unsigned long expectedWrap, const char *name) {
   printf("%s: start=%lu, theo dõi %lu ms (bước 1 ms)\n", name, (unsigned long)start, duration);
   printf("  setup/attach/base/chân 11: %s; lịch nhóm/nghỉ độc lập: %s\n",
     startup && schedule ? "đúng" : "SAI", planned ? "đúng" : "SAI");
-  printf("  Góc 0–180, đơn điệu, tốc độ riêng, bước tối đa %d°: %s; đồng thời đúng nhóm: %s\n",
+  printf("  Góc 0–180, đơn điệu, tốc độ đúng bước/servo, bước tối đa %d°: %s; đồng thời đúng nhóm: %s\n",
     maxStep, angles && smooth ? "đúng" : "SAI", groups ? "đúng" : "SAI");
   printf("  Chỉ ghi góc đổi: %s; xong tại %lu ms (thực tế %lu), về mọi base, không ghi tiếp: %s\n",
     onlyChanges ? "đúng" : "SAI", (unsigned long)finalEnd, actualFinish,
@@ -363,15 +401,15 @@ int main() {
     printf("KẾT QUẢ: KHÔNG ĐẠT (biến thể thiếu tình huống cần kiểm hoặc thời gian vượt phạm vi test)\n");
     return 1;
   }
-  printf("Bảng %u dòng hợp lệ, %d dòng sai bỏ qua; tự thêm %d dòng về base; GAP=%lu\n",
-    (unsigned)userRows, invalidRows, returnRows, SET_GAP_MS);
-  for (int i = 0; i < SERVO_COUNT; ++i) printf("Servo %d: chân %d, base %d°, tốc độ %lu°/s, attach %lu ms\n",
-    i + 1, SERVO_PINS[i], GOC_BASE[i], TOC_DO_DEG_S[i], (unsigned long)attachAt(i));
+  printf("Bảng %u dòng hợp lệ, %d dòng sai bỏ qua (bước sai %d, servo sai %d); tự thêm %d dòng về base; GAP=%lu\n",
+    (unsigned)userRows, invalidRows, invalidStepRows, invalidServoRows, returnRows, SET_GAP_MS);
+  for (int i = 0; i < SERVO_COUNT; ++i) printf("Servo %d: chân %d, base %d°, attach %lu ms\n",
+    i + 1, SERVO_PINS[i], GOC_BASE[i], (unsigned long)attachAt(i));
   for (size_t k = 0; k < moves.size(); ++k) {
     const ExpectedMove &m = moves[k];
-    printf("Lượt %u, nhóm %d%s: servo %d %d->%d°, %lu..%lu ms\n", (unsigned)k + 1,
+    printf("Lượt %u, nhóm %d%s: servo %d %d->%d°, hàng tốc độ %d = %lu°/s, %lu..%lu ms\n", (unsigned)k + 1,
       m.group + 1, m.returning ? " về base" : "", m.servo + 1, m.from, m.to,
-      (unsigned long)m.begin, (unsigned long)m.end);
+      m.speedRow + 1, m.speed, (unsigned long)m.begin, (unsigned long)m.end);
   }
   for (int i = 0; i < 16; ++i) servo_angle[i] = UNATTACHED_ANGLE;
   const bool normal = runStartup(0, 0, "Khởi động thường");

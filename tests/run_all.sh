@@ -81,45 +81,59 @@ zero_gap = replace_once(
 
 
 def zero_speeds(match):
-    # Giữ nguyên số phần tử của bảng, đặt TẤT CẢ tốc độ về 0.
-    values = [value.strip() for value in match.group(2).split(",") if value.strip()]
-    if not values or any(not re.fullmatch(r"\d+[uUlL]*", value) for value in values):
-        raise SystemExit("LỖI: không đọc được mọi phần tử TOC_DO_DEG_S[]")
-    return match.group(1) + "{" + ", ".join("0" for _ in values) + "};"
+    # Giữ nguyên số hàng/cột, đặt TẤT CẢ tốc độ (kể cả hàng về base) về 0.
+    body = re.sub(r"//[^\n]*|/\*[\s\S]*?\*/", "", match.group(2))
+    rows = re.findall(r"\{([^{}]*)\}", body)
+    if not rows or re.sub(r"\{[^{}]*\}|[\s,]", "", body):
+        raise SystemExit("LỖI: không đọc được các hàng TOC_DO_DEG_S[][]")
+    zero_rows = []
+    for row in rows:
+        values = [value.strip() for value in row.split(",") if value.strip()]
+        if not values or any(not re.fullmatch(r"\d+[uUlL]*", value) for value in values):
+            raise SystemExit("LỖI: không đọc được mọi phần tử TOC_DO_DEG_S[][]")
+        zero_rows.append("  {" + ", ".join("0" for _ in values) + "},")
+    return match.group(1) + "{\n" + "\n".join(zero_rows) + "\n};"
 
 
-speed_pattern = r"^(const unsigned long\s+TOC_DO_DEG_S\s*\[\s*\]\s*=\s*)\{([^}]*)\};"
+speed_pattern = r"^(const unsigned long\s+TOC_DO_DEG_S\s*\[\s*\]\s*\[\s*SERVO_COUNT\s*\]\s*=\s*)\{([\s\S]*?)^\};"
 variants = {
     "zero_gap": zero_gap,
-    "zero_speed": replace_once(source, speed_pattern, zero_speeds, "TOC_DO_DEG_S[]"),
-    "zero_both": replace_once(zero_gap, speed_pattern, zero_speeds, "TOC_DO_DEG_S[]"),
+    "zero_speed": replace_once(source, speed_pattern, zero_speeds, "TOC_DO_DEG_S[][]"),
+    "zero_both": replace_once(zero_gap, speed_pattern, zero_speeds, "TOC_DO_DEG_S[][]"),
 }
 
 # Nhóm đầu có dòng dài nhất ở đầu, để bắt lỗi chỉ chờ dòng cuối.
 # Hai lần lặp servo CUNG_LUC thử nghỉ 500 ms và 1500 ms; cuối bảng mọi servo lệch base.
 tables = {
     "custom_table": """
-  {1, 150, LAN_LUOT},
-  {2, 35, CUNG_LUC},
-  {3, 50, CUNG_LUC},
-  {4, 30, LAN_LUOT},
-  {4, 60, CUNG_LUC},
-  {2, 75, CUNG_LUC},
-  {1, 120, CUNG_LUC},
-  {2, 95, CUNG_LUC},
-  {3, 90, CUNG_LUC},
+  {1, 1, 150, LAN_LUOT},
+  {1, 2, 35, CUNG_LUC},
+  {1, 3, 50, CUNG_LUC},
+  {2, 4, 30, LAN_LUOT},
+  {2, 4, 60, CUNG_LUC},
+  {2, 2, 75, CUNG_LUC},
+  {3, 1, 120, CUNG_LUC},
+  {3, 2, 95, CUNG_LUC},
+  {3, 3, 90, CUNG_LUC},
 """,
     "empty_table": "",
     "invalid_table": """
-  {0, 180, LAN_LUOT},
-  {255, 0, CUNG_LUC},
-  {5, 180, LAN_LUOT},
-  {1, 135, LAN_LUOT},
-  {0, 0, CUNG_LUC},
-  {2, 45, CUNG_LUC},
-  {255, 0, LAN_LUOT},
-  {3, 60, LAN_LUOT},
-  {5, 0, CUNG_LUC},
+  {1, 0, 180, LAN_LUOT},
+  {1, 255, 0, CUNG_LUC},
+  {1, 5, 180, LAN_LUOT},
+  {0, 1, 180, LAN_LUOT},
+  {4, 2, 180, CUNG_LUC},
+  {1, 1, 135, LAN_LUOT},
+  {1, 0, 0, CUNG_LUC},
+  {0, 1, 0, LAN_LUOT},
+  {4, 2, 0, LAN_LUOT},
+  {2, 2, 45, CUNG_LUC},
+  {1, 255, 0, LAN_LUOT},
+  {255, 3, 180, LAN_LUOT},
+  {3, 3, 60, LAN_LUOT},
+  {1, 5, 0, CUNG_LUC},
+  {0, 4, 180, CUNG_LUC},
+  {4, 4, 180, LAN_LUOT},
 """,
 }
 table_pattern = r"^(const BuocQuay DONG_TAC_1\[\]\s*=\s*)\{[\s\S]*?^\};"
@@ -128,6 +142,17 @@ for suffix, rows in tables.items():
         source, table_pattern, lambda match: match.group(1) + "{" + rows + "\n};",
         "DONG_TAC_1[]")
 
+# Mọi hàng/cột khác nhau: lấy nhầm bước, servo hoặc hàng về base đều đổi lịch.
+custom_speeds = """{
+  {5, 10, 20, 25},
+  {40, 50, 100, 125},
+  {200, 250, 500, 1000},
+  {1, 2, 4, 8},
+};"""
+variants["custom_table"] = replace_once(
+    variants["custom_table"], speed_pattern,
+    lambda match: match.group(1) + custom_speeds, "TOC_DO_DEG_S[][]")
+
 for suffix, variant in variants.items():
     pathlib.Path(f"build/test_17_{suffix}.inc").write_text(variant, encoding="utf-8")
 PY
@@ -135,11 +160,11 @@ then
   for suffix in zero_gap zero_speed zero_both custom_table empty_table invalid_table; do
     case "$suffix" in
       zero_gap) macro=TEST_17_ZERO_GAP; label="SET_GAP_MS=0" ;;
-      zero_speed) macro=TEST_17_ZERO_SPEED; label="mọi TOC_DO_DEG_S[]=0" ;;
-      zero_both) macro=TEST_17_ZERO_BOTH; label="SET_GAP_MS=0, mọi TOC_DO_DEG_S[]=0" ;;
-      custom_table) macro=TEST_17_CUSTOM_TABLE; label="nhóm cùng lúc, lặp servo, tự về cả 4 base" ;;
+      zero_speed) macro=TEST_17_ZERO_SPEED; label="mọi TOC_DO_DEG_S[][]=0" ;;
+      zero_both) macro=TEST_17_ZERO_BOTH; label="SET_GAP_MS=0, mọi TOC_DO_DEG_S[][]=0" ;;
+      custom_table) macro=TEST_17_CUSTOM_TABLE; label="tốc độ riêng từng hàng/cột, nhóm cùng lúc, lặp servo, tự về cả 4 base" ;;
       empty_table) macro=TEST_17_EMPTY_TABLE; label="bảng bước rỗng" ;;
-      invalid_table) macro=TEST_17_INVALID_TABLE; label="bỏ qua số servo 0/5/255" ;;
+      invalid_table) macro=TEST_17_INVALID_TABLE; label="bỏ qua số servo 0/5/255 và bước 0/4/255" ;;
     esac
     echo "-- test_17_dong_tac_gap_do ($label)"
     if g++ -std=gnu++11 -O1 -Itests/mock "-D$macro" tests/test_17_dong_tac_gap_do.cpp tests/mock/globals.cpp -o "build/test_17_$suffix"; then
