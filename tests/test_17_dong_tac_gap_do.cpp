@@ -129,7 +129,7 @@ bool correctConfiguration() {
     // Mọi ô khác nhau: bắt lấy nhầm hàng bước 2/3/về base, vốn trùng tốc độ ở cấu hình mặc định.
     {5, 10, 20, 25}, {40, 50, 100, 125}, {200, 250, 500, 1000}, {1, 2, 4, 8}
 #else
-    {50, 50, 50, 50}, {30, 20, 20, 30}, {30, 20, 20, 30}, {30, 20, 20, 30}
+    {50, 50, 50, 60}, {30, 20, 20, 40}, {30, 20, 20, 40}, {30, 20, 20, 40}
 #endif
   };
   if (ULONG_MAX != UINT32_MAX || SERVO_COUNT != sizeof(pins) ||

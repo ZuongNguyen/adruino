@@ -16,7 +16,8 @@
 //      Bước này servo quay hết tốc độ, vì chưa biết lúc đầu servo đang đứng ở góc nào để quay chậm từ đó.
 //      Servo chưa tới lượt thì chưa attach(): chân chưa có xung, chương trình chưa điều khiển servo đó.
 //   2. Chờ SET_HOLD_MS rồi chạy bảng DONG_TAC_1[] từ trên xuống. Servo quay đều theo bảng tốc độ TOC_DO_DEG_S[][] (theo bước
-//      và servo): bước 1 mọi servo 50°/s; bước 2, 3 và lúc về base servo 1, 4: 30°/s, servo 2, 3: 20°/s.
+//      và servo): bước 1 servo 1, 2, 3: 50°/s, servo 4: 60°/s; bước 2, 3 và lúc về base servo 1: 30°/s, servo 2, 3: 20°/s,
+//      servo 4: 40°/s.
 //      Bước 1, lần lượt: servo 3: 30° -> 60°; servo 2: 15° -> 45°;
 //              servo 1: 90° -> 135° (trái 45°) -> 90° -> 45° (phải 45°) -> 90°; servo 4: 0° -> 180° -> 0°.
 //      Bước 2, cùng lúc: servo 2: 45° -> 130° và servo 3: 60° -> 120°.
@@ -28,12 +29,12 @@
 //   3. Về base: nghỉ NGHI_DOI_SERVO_MS rồi mọi servo còn lệch góc base cùng quay về base. setup() tự thêm phần này,
 //      nên sửa bảng thế nào thì cuối cùng servo vẫn về base. Sau đó đứng yên.
 // Với thông số mặc định (giây, tính từ lúc khởi động): góc base 0–1,5;
-//   bước 1: servo 3 3,0–3,6; servo 2 5,1–5,7; servo 1 7,2–8,1, 8,6–9,5, 10,0–10,9, 11,4–12,3; servo 4 13,8–17,4 và 17,9–21,5;
-//   bước 2: servo 2 23,0–27,25 và servo 3 23,0–26,0;
-//   bước 3: servo 4 28,75–32,75; servo 2, 3 34,25–38,5; servo 1 40,0–43,0; servo 2, 3 44,5–48,75; servo 4 50,25–54,25;
-//           servo 2, 3 55,75–60,0;
-//   về base: servo 1 180° -> 90° 61,5–64,5; servo 2 45° -> 15° và servo 3 60° -> 30° 61,5–63,0 (servo 4 đã ở 0°).
-//   Sau 64,5 s đứng yên.
+//   bước 1: servo 3 3,0–3,6; servo 2 5,1–5,7; servo 1 7,2–8,1, 8,6–9,5, 10,0–10,9, 11,4–12,3; servo 4 13,8–16,8 và 17,3–20,3;
+//   bước 2: servo 2 21,8–26,05 và servo 3 21,8–24,8;
+//   bước 3: servo 4 27,55–30,55; servo 2, 3 32,05–36,3; servo 1 37,8–40,8; servo 2, 3 42,3–46,55; servo 4 48,05–51,05;
+//           servo 2, 3 52,55–56,8;
+//   về base: servo 1 180° -> 90° 58,3–61,3; servo 2 45° -> 15° và servo 3 60° -> 30° 58,3–59,8 (servo 4 đã ở 0°).
+//   Sau 61,3 s đứng yên.
 
 #include <Servo.h>
 
@@ -46,10 +47,10 @@ const uint8_t SERVO_COUNT  = sizeof(SERVO_PINS) / sizeof(SERVO_PINS[0]);
 // Hàng thứ n là bước n (cột "bước" trong DONG_TAC_1[]); hàng CUỐI là lúc về base. Thêm bước thì thêm hàng ngay trên hàng về base.
 const unsigned long TOC_DO_DEG_S[][SERVO_COUNT] = {
   // servo 1, 2,  3,  4
-  {50, 50, 50, 50},   // bước 1
-  {30, 20, 20, 30},   // bước 2
-  {30, 20, 20, 30},   // bước 3
-  {30, 20, 20, 30},   // về base
+  {50, 50, 50, 60},   // bước 1
+  {30, 20, 20, 40},   // bước 2
+  {30, 20, 20, 40},   // bước 3
+  {30, 20, 20, 40},   // về base
 };
 const uint8_t HANG_VE_BASE = sizeof(TOC_DO_DEG_S) / sizeof(TOC_DO_DEG_S[0]) - 1;   // chỉ số hàng về base (= số bước có tốc độ)
 

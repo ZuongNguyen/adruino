@@ -213,7 +213,11 @@ Sau đó người dùng bảo "tăng tốc bước 1 lên cỡ 50 độ/s": tố
 một bước, hàng cuối dùng khi về base (`HANG_VE_BASE`); mỗi dòng `DONG_TAC_1[]` thêm cột bước đầu tiên `{bước, servo, góc, kiểu}`.
 Bước 1 = 50°/s cho cả 4 servo (kể cả servo 2, 3); bước 2, 3 và về base giữ 30/20/20/30. Lịch: bước 1 3,0–21,5 s, bước 2 23,0–27,25 s,
 bước 3 28,75–60,0 s, về base 61,5–64,5 s. ChatGPT báo ĐẠT vòng 1, cập nhật test theo bảng tốc độ hai chiều, `run_all.sh` thử thêm
-số bước sai 0/4/255 và ma trận tốc độ khác nhau từng ô. Flash 10 %, RAM 27 %. Chưa thử trên mạch thật.
+số bước sai 0/4/255 và ma trận tốc độ khác nhau từng ô. Flash 10 %, RAM 27 %. Người dùng duyệt, commit d429242.
+Ngày 14/11/2026 người dùng bảo "chỉnh tốc độ xoay của servo 4 trong các bước nhanh lên xíu" (không nói số): mình tăng cột servo 4
+thêm 10°/s ở mọi hàng, bước 1 50 → 60, bước 2, 3 và về base 30 → 40. Servo 4 quay 180° ở bước 1 mất 3 s, 120° ở bước 3 mất 3 s.
+Lịch: bước 1 3,0–20,3 s, bước 2 21,8–26,05 s, bước 3 27,55–56,8 s, về base 58,3–61,3 s. ChatGPT báo ĐẠT, sửa 4 tốc độ servo 4
+còn ghi cứng trong `test_17_dong_tac_gap_do.cpp`; Flash 10 %, RAM 27 %. Chưa thử trên mạch thật.
 
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
