@@ -18,6 +18,7 @@ Các prototype chạy trên **Arduino Uno**, mô phỏng bằng Wokwi hoặc Tin
 | 12 – 3 servo, 2 nút | Bài 1.4: nút 1 cho 2 servo quay 90°, 1 servo quay 180°; nút 2 cho 2 servo quay 180°, 1 servo quay 90°; quay qua lại liên tục, đổi chiều mỗi 0,5 giây | `prototype-12-3-servo-2-nut/sketch.ino` |
 | 13 – 2 nút bật/tắt 2 LED | Nhấn nút 1 bật/tắt LED đỏ, nhấn nút 2 bật/tắt LED xanh; hai nút nối khác kiểu (kéo xuống và nối thẳng GND) | `prototype-13-2-nut-bat-tat-2-led/sketch.ino` |
 | 14 – Mạch thử nghiệm 1 servo PCA9685 | 1 servo ở kênh 0 của mạch PCA9685 (I2C): quét đều 0° ↔ 180°, rồi đi từng nấc 45°; tự chuyển qua lại giữa 2 hiệu ứng | `prototype-14-mach-thu-nghiem-1-servo-pca-9685/sketch.ino`, `libraries.txt` |
+| 15 – Test servo 11/10 | 1 servo ở chân 3: khi cấp điện hoặc nhấn RESET, servo về 0° và đứng 1 giây, rồi quét 0° ↔ 180° mãi, dừng 0,5 giây mỗi đầu | `prototype-15-test-servo-11-10/sketch.ino` |
 
 ## Sơ đồ nối dây
 
@@ -236,6 +237,20 @@ Servo không nối vào Arduino mà cắm vào mạch PCA9685; Arduino chỉ g�
 >
 > ⚠️ **Mạch thật:** cầu đấu xanh chịu **tối đa 6V**. Không cắm adapter 9–12V vào đây, servo và mạch sẽ hỏng. Dùng nguồn 5V ≥ 1A, đúng cực + và −. Không lấy nguồn servo từ chân 5V của Arduino. GND của nguồn servo và GND của Arduino đã nối chung qua mạch PCA9685 nhờ dây GND ở bảng trên, nên không được bỏ dây đó.
 
+### Prototype 15
+
+Mạch Tinkercad: servo nằm bên phải breadboard. Dây đỏ từ **5V** và dây nâu từ **GND** của Arduino nối vào hai hàng nguồn dưới cùng của breadboard (+ và −); servo lấy nguồn từ hai hàng đó.
+
+| Dây servo | Nối tới | Dây trong ảnh |
+|---|---|---|
+| Cam (tín hiệu) | Chân **3** Arduino (nối thẳng, không qua breadboard) | Xanh lá |
+| Đỏ (nguồn) | Hàng **+** dưới breadboard → **5V** | Đỏ |
+| Nâu (GND) | Hàng **−** dưới breadboard → **GND** | Nâu |
+
+> Chân đọc từ ảnh mạch Tinkercad. Chân 3 có dấu ~ nhưng servo không cần chân PWM; đổi chân thì sửa `SERVO_PIN`.
+>
+> **Mạch thật:** 1 servo SG90 chạy được bằng 5V của cổng USB. Nếu servo vừa quay thì Arduino tự reset (servo cứ về 0° rồi bắt đầu lại), dùng nguồn 5V riêng cho hàng + và nối **chung GND**, hoặc cắm thêm tụ 100–470 µF giữa hai hàng nguồn.
+
 ## Logic chính
 
 - Nút dùng `INPUT_PULLUP`: nhả đọc `HIGH`, nhấn đọc `LOW`, không cần điện trở ngoài.
@@ -254,6 +269,7 @@ Servo không nối vào Arduino mà cắm vào mạch PCA9685; Arduino chỉ g�
 - Bản 12: chống dội nút giống bản 10. Nhấn một lần là chạy liên tục, không cần giữ. Bảng `OUT_ANGLES[nút][servo]` ghi góc quay tới của từng servo theo từng nút; mỗi vòng dài `2 × STEP_MS`: nửa đầu ở góc quay tới, nửa sau về `REST_ANGLE` (0°). Hàm `angleAt(mode, i, t)` tính góc theo thời gian từ đầu vòng, chỉ gửi lệnh khi góc đổi. Servo nhận lệnh ghi thẳng góc đích và tự quay hết tốc độ (SG90 cần ~0,3 giây cho 180°, nên 0,5 giây là đủ tới nơi và đứng lại). Đổi nút: đang ở góc quay tới thì về 0° ngay, đang ở 0° thì đứng nốt cho đủ 0,5 giây, nên servo luôn đứng ở 0° đủ 0,5 giây trước khi quay góc mới. Nhấn lại nút đang chạy thì giữ nguyên nhịp.
 - Bản 13: giống bản 01 nhưng cho 2 cặp nút–LED: nút thứ b bật/tắt LED thứ b (`BUTTON_PINS[b]` → `LED_PINS[b]`), mỗi nút có bộ chống dội 50 ms riêng như bản 10. Mảng `PRESSED[]` cho từng nút một mức nhấn: `HIGH` thì `pinMode(INPUT)`, `LOW` thì `pinMode(INPUT_PULLUP)`.
 - Bản 14: PCA9685 phát xung 50 Hz, mỗi chu kỳ chia 4096 bước; `pulseTicks()` đổi góc thành số bước, dùng dải 544–2400 µs giống `Servo.h`. Chương trình quét đều `QUET_ROUNDS` vòng (lượt 2,7 giây, dừng 0,5 giây) rồi đi từng nấc `NAC_ROUNDS` vòng (4 nấc 45°, mỗi nấc quay 0,4 giây, dừng 0,6 giây), mặc định 2 + 1 vòng, dài 20,8 giây. Góc là hàm của thời gian (`angleQuet()`, `angleNac()`), chỉ gửi I2C khi góc đổi. Không thấy PCA9685 lúc khởi động thì đèn L nháy nhanh và không gửi lệnh. Đổi kênh bằng `SERVO_CHANNEL`.
+- Bản 15: `setup()` ghi 0° ngay khi khởi động, rồi `loop()` giữ 0° suốt `RESET_MS` (1 giây) để servo kịp quay về từ bất kỳ góc nào nó đang đứng. Sau đó `angleAt(t)` cho góc theo thời gian `t` trong vòng quét, quét giống bản 09 (lượt lên 2,7 giây, dừng 0,5 giây, lượt về 2,7 giây, dừng 0,5 giây; một vòng 6,4 giây) và lặp mãi. Mốc đầu vòng dời bằng phép trừ `unsigned long`, nên khi `millis()` tràn về 0 sau khoảng 49,7 ngày servo vẫn quét tiếp, không giật về 0°. Muốn reset lại thì nhấn nút RESET đỏ trên Arduino: chương trình chạy lại từ đầu nên servo về 0° rồi mới quét.
 
 ## Cách chạy
 
@@ -273,6 +289,16 @@ bash tests/run_all.sh
 
 Lệnh này kiểm tra chân (PWM, xung đột servo với chân 9 và 10, trùng chân), biên dịch thử, chạy test hiệu ứng theo từng ms, rồi biên dịch thật cho Uno và in dung lượng Flash/RAM. Kết quả đúng là dòng `TẤT CẢ ĐẠT`.
 
+## Quy trình làm việc
+
+Mỗi bản mới, mỗi lần sửa lỗi hay tối ưu được làm trong một **worktree** riêng (thư mục `.claude/worktrees/<tên>`, nhánh `claude/<tên>`), nên thư mục chính và nhánh `main` chỉ chứa bản đã qua kiểm tra.
+
+1. **Claude** viết code và cập nhật tài liệu.
+2. **ChatGPT** (app Codex trên máy, Claude tự gọi bằng `bash scripts/chatgpt-kiem-tra.sh "<việc vừa làm>"`) chạy `tests/run_all.sh`, rà lỗi theo `AGENTS.md`, viết thêm test và ghi báo cáo vào `.chatgpt/bao-cao.md`. ChatGPT không sửa sketch.
+3. Báo cáo **CHƯA ĐẠT** thì Claude sửa rồi giao kiểm tra lại. **ĐẠT** thì Claude commit, gộp vào `main` và đẩy lên GitHub.
+
+Muốn tự xem ChatGPT đã kiểm tra gì: mở `.chatgpt/bao-cao.md` (kết luận) hoặc `.chatgpt/nhat-ky.txt` (toàn bộ quá trình) trong thư mục worktree.
+
 ## Xử lý sự cố
 
 - LCD sáng nhưng không có chữ: đổi địa chỉ `0x27` thành `0x3F`, hoặc vặn biến trở tương phản ở mặt sau module.
@@ -291,3 +317,5 @@ Lệnh này kiểm tra chân (PWM, xung đột servo với chân 9 và 10, trùn
 - Bản 14 đèn L nháy nhanh: Arduino không thấy PCA9685. Kiểm tra VCC, GND và xem SDA có vào A4, SCL có vào A5 không (hay bị đảo). Nếu đã hàn cầu địa chỉ thì sửa `PCA_ADDRESS`.
 - Bản 14 đèn L không nháy nhưng servo đứng yên: chưa cấp nguồn vào cầu đấu xanh, hoặc servo cắm ngược hàng (dây cam phải ở hàng PWM) hay cắm sai cột.
 - Bản 14 servo không đủ 180° hoặc kêu rè ở hai đầu: dao động của PCA9685 lệch theo từng mạch, chỉnh `SERVO_MIN_US`, `SERVO_MAX_US`.
+- Bản 15 servo cứ về 0° rồi bắt đầu lại giữa chừng lượt quét: Arduino đang tự reset vì sụt nguồn khi servo quay. Xem lưu ý **Mạch thật** ở mục Prototype 15.
+- Bản 15 servo chưa về tới 0° đã quay lên: servo lớn hoặc nguồn yếu quay chậm, tăng `RESET_MS`.
