@@ -30,13 +30,13 @@ for t in tests/test_*.cpp; do
   fi
 done
 
-# Kiểm tra cấu hình gap 0 và move 0 bằng đúng sketch/test 16, chỉ đổi bản sinh ở build/.
+# Kiểm tra cấu hình gap 0 và tốc độ 0 bằng đúng sketch/test 16, chỉ đổi bản sinh ở build/.
 if python -I - <<'PY'
 import pathlib
 import re
 
 source = pathlib.Path("prototype-16-reset-5-servo/sketch.ino").read_text(encoding="utf-8")
-for constant, suffix in (("RESET_GAP_MS", "zero_gap"), ("MOVE_MS", "zero_move")):
+for constant, suffix in (("RESET_GAP_MS", "zero_gap"), ("MOVE_SPEED_DEG_S", "zero_speed")):
     variant, count = re.subn(
         rf"^(const unsigned long {constant}\s*=\s*)[^;\n]+;",
         r"\g<1>0;", source, flags=re.MULTILINE)
@@ -51,9 +51,9 @@ then
   else
     fail=1
   fi
-  echo "-- test_16_reset_5_servo (MOVE_MS=0)"
-  if g++ -std=gnu++11 -O1 -Itests/mock -DTEST_16_ZERO_MOVE tests/test_16_reset_5_servo.cpp tests/mock/globals.cpp -o build/test_16_zero_move; then
-    ./build/test_16_zero_move || fail=1
+  echo "-- test_16_reset_5_servo (MOVE_SPEED_DEG_S=0)"
+  if g++ -std=gnu++11 -O1 -Itests/mock -DTEST_16_ZERO_SPEED tests/test_16_reset_5_servo.cpp tests/mock/globals.cpp -o build/test_16_zero_speed; then
+    ./build/test_16_zero_speed || fail=1
   else
     fail=1
   fi
