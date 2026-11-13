@@ -61,6 +61,45 @@ else
   fail=1
 fi
 
+# Bản 17: kiểm tra riêng gap 0, tốc độ 0 và cả hai cùng bằng 0 trong build/.
+if python -I - <<'PY'
+import pathlib
+import re
+
+source = pathlib.Path("prototype-17-dong-tac-gap-do/sketch.ino").read_text(encoding="utf-8")
+cases = (
+    ("zero_gap", ("SET_GAP_MS",)),
+    ("zero_speed", ("MOVE_SPEED_DEG_S",)),
+    ("zero_both", ("SET_GAP_MS", "MOVE_SPEED_DEG_S")),
+)
+for suffix, constants in cases:
+    variant = source
+    for constant in constants:
+        variant, count = re.subn(
+            rf"^(const unsigned long {constant}\s*=\s*)[^;\n]+;",
+            r"\g<1>0;", variant, flags=re.MULTILINE)
+        if count != 1:
+            raise SystemExit(f"LỖI: cần tìm đúng một khai báo {constant} để tạo biến thể 17 {suffix}")
+    pathlib.Path(f"build/test_17_{suffix}.inc").write_text(variant, encoding="utf-8")
+PY
+then
+  for suffix in zero_gap zero_speed zero_both; do
+    case "$suffix" in
+      zero_gap) macro=TEST_17_ZERO_GAP; label="SET_GAP_MS=0" ;;
+      zero_speed) macro=TEST_17_ZERO_SPEED; label="MOVE_SPEED_DEG_S=0" ;;
+      zero_both) macro=TEST_17_ZERO_BOTH; label="SET_GAP_MS=0, MOVE_SPEED_DEG_S=0" ;;
+    esac
+    echo "-- test_17_dong_tac_gap_do ($label)"
+    if g++ -std=gnu++11 -O1 -Itests/mock "-D$macro" tests/test_17_dong_tac_gap_do.cpp tests/mock/globals.cpp -o "build/test_17_$suffix"; then
+      "./build/test_17_$suffix" || fail=1
+    else
+      fail=1
+    fi
+  done
+else
+  fail=1
+fi
+
 echo; echo "== 4. Biên dịch thật cho Arduino Uno (arduino-cli) =="
 bash tests/compile_uno.sh || fail=1
 

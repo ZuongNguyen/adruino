@@ -104,6 +104,7 @@ chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `ma
 | 14 | Mạch thử nghiệm 1 servo qua PCA9685 (kênh 0, I2C A4/A5): quét đều + đi từng nấc 45° | Xong |
 | 15 | Test servo 11/10: 1 servo chân 3, reset về 0° đứng 1 s rồi quét 0° ↔ 180° mãi | Xong |
 | 16 | Reset 5 servo: chân 5, 6, 9, 10, 11 (servo 1 → 5) về 0° lần lượt, cách nhau 0,5 s; rồi servo 2 quay chậm lên 45°, servo 3 lên 60° (15°/s, lần lượt) | Xong |
+| 17 | Động tác gắp đồ: mạch bản 16 bỏ servo 5; đặt ban đầu 0/30/80/20°, bước 1 lần lượt servo 2 → 3 → 4 → 1 (15°/s, nghỉ 1,5 s) | Xong |
 
 Ngày 27/10/2026, cả 8 bản qua `tests/run_all.sh`: chân, g++ giả lập, test logic 05–08, arduino-cli cho Uno.
 Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
@@ -166,13 +167,22 @@ Ngay sau đó người dùng yêu cầu "cho servo 3 từ 45 lên 60 độ": hi�
 bằng bảng `MOVES[] = {{2, 45}, {3, 60}}` (struct `BuocQuay`) và `MOVE_SPEED_DEG_S` = 15; lịch quay lập trong `setup()`.
 ChatGPT báo ĐẠT, cập nhật `test_16_reset_5_servo.cpp` và biến thể `MOVE_SPEED_DEG_S = 0` trong `run_all.sh`. Flash 7 %, RAM 5 %.
 
+**Ghi chú bản 17 (13/11/2026):** tên do người dùng đặt ("động tác gắp đồ"); người dùng gọi đây là "động tác 1", có "bước 1",
+nên có thể sẽ có bước 2, động tác 2 sau. Cùng mạch bản 16, người dùng bảo **bỏ servo 5** (không dùng chân 11) và **không reset
+servo 2, 3 về 0° nữa**: mỗi servo về thẳng góc ban đầu 0/30/80/20°. Đề servo 1 "từ 0 lên 45 độ sau đó quay ngược chiều 90 độ sau đó
+quay ngược chiều 45 độ" sẽ ra −45°; người dùng chọn hiểu là góc đích: 0 → 45 → 90 → 45. Nghỉ 1,5 s giữa các servo (người dùng nói),
+cùng servo đi tiếp/đổi chiều thì dừng 0,5 s (người dùng chọn). Tốc độ giữ 15°/s như bản 16 (người dùng chưa nói lại). Chờ 1,5 s sau
+khi đặt ban đầu (mình chọn). Bảng `BUOC_1[]` dạng `{servo, góc}`, lịch lập trong `setup()`. Chưa thử trên mạch thật.
+ChatGPT báo ĐẠT vòng 1, viết `tests/test_17_dong_tac_gap_do.cpp`, `run_all.sh` chạy thêm biến thể tốc độ 0 và `SET_GAP_MS = 0`.
+Flash 8 %, RAM 8 %. Bước 1 xong lúc 25 665 ms, góc cuối servo 1–4 = 45/45/60/20°.
+
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
 
 ## Quy ước code (giữ đúng khi viết prototype mới)
 
 - Thư mục mới: `prototype-NN-ten-khong-dau/sketch.ino`, tên do người dùng đặt (xem mục bắt buộc ở đầu file),
-  NN tăng dần (bản tiếp theo là 17).
+  NN tăng dần (bản tiếp theo là 18).
 - Đầu file: một dòng mô tả `– Arduino Uno`, rồi khối `// Mạch:` liệt kê từng dây nối, rồi mô tả hiệu ứng.
 - Comment tiếng Việt có dấu; tên hằng/hàm theo kiểu đã có (`SO_LE_`, `CHAY_`, `DONG_BO_`, `SONG_`,
   `levelSoLe()`, `angleAt()`), tên tiếng Việt không dấu khi là tên hiệu ứng.
