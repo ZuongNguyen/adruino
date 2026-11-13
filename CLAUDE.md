@@ -34,11 +34,15 @@ Claude không tự chạy `tests/run_all.sh` hay `/code-review` thay ChatGPT.
    2 = ChatGPT không chạy được (báo người dùng, không tự chạy test thay). Việc ChatGPT phải làm ghi trong `AGENTS.md`.
 4. **CHƯA ĐẠT**: Claude sửa đúng các lỗi ở mục "Lỗi cần Claude sửa" rồi giao lại bước 3. Lỗi ChatGPT báo mà Claude
    thấy không đúng thì nói với người dùng, không tự bỏ qua. Sau 3 vòng vẫn chưa đạt thì dừng và hỏi người dùng.
-5. **ĐẠT → đóng gói.** Người dùng đã giao Claude commit và đẩy lên GitHub sau khi ChatGPT báo ĐẠT, không cần hỏi lại:
+5. **ĐẠT → gửi người dùng duyệt → đóng gói.** Người dùng đổi ngày 13/11/2026: **chỉ commit sau khi người dùng tự xem code
+   và nói ổn**, kể cả khi ChatGPT đã báo ĐẠT. Gửi file `sketch.ino` bản chưa kiểm tra ngay khi viết xong (`SendUserFile`), rồi gửi
+   lại kèm tóm tắt báo cáo khi ChatGPT báo ĐẠT, và chờ. **Không dán vào Tinkercad để chạy thử** trừ khi người dùng yêu cầu.
+   Người dùng duyệt rồi thì commit và đẩy lên GitHub, không hỏi thêm:
    - Claude sửa code sau lần ĐẠT cuối thì phải giao ChatGPT lại.
    - Commit trên nhánh worktree, gồm cả test ChatGPT viết. Lời nhắn tiếng Việt kiểu `Thêm bản NN: ...` / `Sửa bản NN: ...`,
      thêm dòng `Kiểm tra: ChatGPT (Codex), tests/run_all.sh ĐẠT`.
    - Gộp vào main từ thư mục chính (dòng đầu của `git worktree list`): `git -C <thư mục chính> merge --ff-only <nhánh worktree>`.
+     Phiên đã vào worktree bằng `EnterWorktree` bị chặn `git -C` sang thư mục chính: gọi `ExitWorktree` (`keep`) trước rồi merge.
      Không fast-forward được (main đã đi tiếp) thì `git rebase main` trong worktree; rebase có xung đột thì giao ChatGPT lại.
    - `git -C <thư mục chính> push origin main` lên `ZuongNguyen/adruino`.
    - Báo người dùng: đã làm gì, tóm tắt báo cáo ChatGPT (Flash/RAM, điều chưa kiểm tra được), commit nào đã lên GitHub.
@@ -104,7 +108,7 @@ chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `ma
 | 14 | Mạch thử nghiệm 1 servo qua PCA9685 (kênh 0, I2C A4/A5): quét đều + đi từng nấc 45° | Xong |
 | 15 | Test servo 11/10: 1 servo chân 3, reset về 0° đứng 1 s rồi quét 0° ↔ 180° mãi | Xong |
 | 16 | Reset 5 servo: chân 5, 6, 9, 10, 11 (servo 1 → 5) về 0° lần lượt, cách nhau 0,5 s; rồi servo 2 quay chậm lên 45°, servo 3 lên 60° (15°/s, lần lượt) | Xong |
-| 17 | Động tác gắp đồ: mạch bản 16 bỏ servo 5; đặt ban đầu 0/30/80/20°, bước 1 lần lượt servo 2 → 3 → 4 → 1 (15°/s, nghỉ 1,5 s) | Xong |
+| 17 | Động tác gắp đồ: mạch bản 16 bỏ servo 5; làm lại từ đầu; base 90/15/30/0°, bước 1 lần lượt servo 3 → 2 → 1 (trái/phải 45°) → 4 (0 → 180 → 0°); bước 2 servo 2 → 130°, servo 3 → 120° cùng lúc; bước 3 (servo 4 → 120°, servo 1 → 180°, servo 2, 3 lên/xuống 2 lần, servo 4 → 0°); tự về base | Đang làm |
 
 Ngày 27/10/2026, cả 8 bản qua `tests/run_all.sh`: chân, g++ giả lập, test logic 05–08, arduino-cli cho Uno.
 Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
@@ -174,7 +178,37 @@ quay ngược chiều 45 độ" sẽ ra −45°; người dùng chọn hiểu l�
 cùng servo đi tiếp/đổi chiều thì dừng 0,5 s (người dùng chọn). Tốc độ giữ 15°/s như bản 16 (người dùng chưa nói lại). Chờ 1,5 s sau
 khi đặt ban đầu (mình chọn). Bảng `BUOC_1[]` dạng `{servo, góc}`, lịch lập trong `setup()`. Chưa thử trên mạch thật.
 ChatGPT báo ĐẠT vòng 1, viết `tests/test_17_dong_tac_gap_do.cpp`, `run_all.sh` chạy thêm biến thể tốc độ 0 và `SET_GAP_MS = 0`.
-Flash 8 %, RAM 8 %. Bước 1 xong lúc 25 665 ms, góc cuối servo 1–4 = 45/45/60/20°.
+Flash 8 %, RAM 8 %. Bước 1 xong lúc 25 665 ms, góc cuối servo 1–4 = 45/45/60/20°. Commit 0adbc34.
+Cùng ngày người dùng "sửa lại" góc đặt ban đầu servo 4 thành **0°** (servo 1–3 giữ 0/30/80°) và chọn giữ bước 1: servo 4 đi
+0° → 60° → 20° (không về 0°). Servo 4 quay 60° mất 4 s nên lịch dời: servo 4 8,3–12,3 s và 12,8–15,5 s, servo 1 17,0–27,0 s,
+bước 1 xong lúc 26 999 ms. ChatGPT báo ĐẠT, cập nhật `test_17_dong_tac_gap_do.cpp`; Flash 8 %, RAM 8 %.
+Người dùng xem bản đó thấy "lỗi thao tác khác nhiều" (chưa nói cụ thể) nên **làm lại từ đầu, thêm dần từng bước, từng servo**.
+Bản hiện tại chỉ đưa servo 1–4 về góc base `GOC_BASE[] = {0, 15, 30, 0}` (attach lần lượt cách `SET_GAP_MS` = 0,5 s) rồi giữ yên
+(lúc đầu làm lại là 0/30/80/0°, người dùng sửa servo 2 → 15°, servo 3 → 20° rồi → 30°). Bản chỉ có góc base 0/15/30/0° được
+ChatGPT báo ĐẠT (Flash 6 %, RAM 3 %), chưa commit. Bản bước 1 cũ còn trong commit 0adbc34.
+Rồi người dùng gửi **bước 1 mới**, theo thứ tự: servo 3 lên 60°, servo 2 lên 45°, servo 1 "xoay bên trái 45 độ sau đó quay sang bên
+phải 45 độ (từ góc 45 đó về 0 rồi xoay -45 độ rồi về 0)", servo 4 xoay 180° rồi về 0. Servo 1 base 0° không xuống được −45°, người dùng
+chọn **đổi base servo 1 thành 90°** (giữa): 90 → 135 → 90 → 45 → 90. Mình coi tăng góc là sang trái (chưa xác nhận trên mạch; ngược
+thì đổi 135 và 45). Tốc độ 15°/s, nghỉ 1,5 s giữa servo, 0,5 s khi cùng servo đi tiếp, chờ 1,5 s sau góc base: giữ như bản bước 1 cũ
+(người dùng chưa nói lại). Dùng lại khung `BUOC_1[]` của 0adbc34, `GOC_BAN_DAU[]` đổi tên thành `GOC_BASE[]`. Bước 1 xong lúc 49,5 s
+(servo 4 quay 180° mất 12 s mỗi chiều). ChatGPT báo ĐẠT vòng 1, cập nhật `test_17_dong_tac_gap_do.cpp` và khôi phục biến thể
+tốc độ 0 trong `run_all.sh`; Flash 8 %, RAM 9 %. Chưa commit.
+Tiếp đó người dùng gửi **bước 2**: "servo 2 từ 45 -> 130, đồng thời servo 3 từ 60 -> 120, chỉnh tốc độ quay servo 2, 3 lên khoảng 20 độ
+trên giây", kèm **quy tắc**: "sau các bước kể cả thử nghiệm hay sửa thì sau cùng phải đưa về dạng base". Cách làm: bảng đổi tên
+`BUOC_1[]` → `DONG_TAC_1[]`, thêm cột `LAN_LUOT`/`CUNG_LUC`; tốc độ theo từng servo `TOC_DO_DEG_S[] = {15, 20, 20, 15}` (mình hiểu
+"tốc độ servo 2, 3" áp cho mọi lần servo 2, 3 quay, kể cả bước 1 và về base; chưa hỏi lại). "Đồng thời" hiểu là bắt đầu cùng lúc, mỗi
+servo đi theo tốc độ của mình nên servo 3 (60°) xong trước servo 2 (85°) 1,25 s. `setup()` tự thêm phần về base sau dòng cuối (nghỉ
+1,5 s, mọi servo còn lệch base cùng quay về), lịch lưu trong các mảng `lich*[]`. Mặc định: bước 2 50,0–54,25 s, về base 55,75–61,5 s.
+ChatGPT báo ĐẠT vòng 1: test tính lịch từ bảng, `run_all.sh` chạy thêm biến thể mọi tốc độ 0, bảng thử nhóm cùng lúc/lặp servo/về
+cả 4 base, bảng rỗng, số servo sai 0/5/255 (chỉ sinh trong `build/`). Flash 9 %, RAM 16 %. Chưa commit.
+Tiếp đó người dùng gửi **bước 3** (servo 2, 3 giữ 130°/120° của bước 2): servo 4 xoay 120° rồi giữ; servo 2, 3 về "trạng thái ở bước 1"
+(45°/60°; người dùng dặn "khi nhắc tới bước 1 chỉ thực hiện thao tác lặp lại này đối với servo 2,3"); servo 1 "xoay 90 độ"; servo 2, 3
+làm lại bước 2; servo 4 từ 120° về 0°; servo 2, 3 về trạng thái bước 1; kết thúc về base. Kèm sửa: "ở bước 1 ban đầu servo 1 và 4 tăng
+tốc độ lên khoảng 30 độ trên giây". Cách hiểu (chưa hỏi lại): servo 1 đang ở 90° nên "xoay 90 độ" là quay thêm 90° sang trái (chiều
+dương như "trái 45°" ở bước 1) → 180°, giữ tới lúc về base; servo 2, 3 mỗi lần quay đều cùng lúc (`CUNG_LUC`); tốc độ 30°/s đặt trong
+`TOC_DO_DEG_S[] = {30, 20, 20, 30}` nên áp cho servo 1, 4 ở mọi bước. Lịch: bước 1 3,0–30,5 s, bước 2 32,0–36,25 s, bước 3 37,75–69,0 s,
+về base 70,5–73,5 s (servo 1, 2, 3 cùng về). ChatGPT báo ĐẠT vòng 1, thêm kiểm giữ góc giữa các bước vào `test_17_dong_tac_gap_do.cpp`;
+`LICH_MAX` = 23, dùng 22 dòng. Flash 10 %, RAM 24 %. Chưa thử trên mạch thật.
 
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
@@ -195,6 +229,9 @@ làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đ
 - LED mờ dần dùng `gammaPwm()` (bình phương mức sáng) cho mắt thấy đều.
 - Mỗi vòng hiệu ứng servo bắt đầu và kết thúc cùng một góc, và servo phải dừng trước khi đổi chiều,
   để chuyển hiệu ứng không bị giật.
+- Bản servo có **góc base** (bản 17 trở đi): sau các bước, kể cả bản thử nghiệm hay bản sửa, chương trình **luôn kết thúc bằng việc
+  đưa mọi servo về góc base** (người dùng yêu cầu 13/11/2026). Làm tự động trong code (như `setup()` bản 17 tự thêm phần về base),
+  không trông vào việc nhớ ghi dòng về base cuối bảng.
 - Bản mới tránh `static_assert` và `constexpr` (bản 07 có `static_assert`, chạy được trên Wokwi) vì chưa
   chắc trình biên dịch của Tinkercad hỗ trợ; dùng kiểm tra lúc chạy, ví dụ `if (SHOW_MS == 0) return;`.
 

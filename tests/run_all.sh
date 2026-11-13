@@ -61,33 +61,85 @@ else
   fail=1
 fi
 
-# Bản 17: kiểm tra riêng gap 0, tốc độ 0 và cả hai cùng bằng 0 trong build/.
+# Bản 17: chỉ thay bản sinh trong build/, không sửa sketch gốc.
 if python -I - <<'PY'
 import pathlib
 import re
 
 source = pathlib.Path("prototype-17-dong-tac-gap-do/sketch.ino").read_text(encoding="utf-8")
-cases = (
-    ("zero_gap", ("SET_GAP_MS",)),
-    ("zero_speed", ("MOVE_SPEED_DEG_S",)),
-    ("zero_both", ("SET_GAP_MS", "MOVE_SPEED_DEG_S")),
-)
-for suffix, constants in cases:
-    variant = source
-    for constant in constants:
-        variant, count = re.subn(
-            rf"^(const unsigned long {constant}\s*=\s*)[^;\n]+;",
-            r"\g<1>0;", variant, flags=re.MULTILINE)
-        if count != 1:
-            raise SystemExit(f"LỖI: cần tìm đúng một khai báo {constant} để tạo biến thể 17 {suffix}")
+
+def replace_once(text, pattern, replacement, name):
+    result, count = re.subn(pattern, replacement, text, flags=re.MULTILINE)
+    if count != 1:
+        raise SystemExit(f"LỖI: cần tìm đúng một khai báo {name} để tạo biến thể 17")
+    return result
+
+
+zero_gap = replace_once(
+    source, r"^(const unsigned long SET_GAP_MS\s*=\s*)[^;\n]+;",
+    r"\g<1>0;", "SET_GAP_MS")
+
+
+def zero_speeds(match):
+    # Giữ nguyên số phần tử của bảng, đặt TẤT CẢ tốc độ về 0.
+    values = [value.strip() for value in match.group(2).split(",") if value.strip()]
+    if not values or any(not re.fullmatch(r"\d+[uUlL]*", value) for value in values):
+        raise SystemExit("LỖI: không đọc được mọi phần tử TOC_DO_DEG_S[]")
+    return match.group(1) + "{" + ", ".join("0" for _ in values) + "};"
+
+
+speed_pattern = r"^(const unsigned long\s+TOC_DO_DEG_S\s*\[\s*\]\s*=\s*)\{([^}]*)\};"
+variants = {
+    "zero_gap": zero_gap,
+    "zero_speed": replace_once(source, speed_pattern, zero_speeds, "TOC_DO_DEG_S[]"),
+    "zero_both": replace_once(zero_gap, speed_pattern, zero_speeds, "TOC_DO_DEG_S[]"),
+}
+
+# Nhóm đầu có dòng dài nhất ở đầu, để bắt lỗi chỉ chờ dòng cuối.
+# Hai lần lặp servo CUNG_LUC thử nghỉ 500 ms và 1500 ms; cuối bảng mọi servo lệch base.
+tables = {
+    "custom_table": """
+  {1, 150, LAN_LUOT},
+  {2, 35, CUNG_LUC},
+  {3, 50, CUNG_LUC},
+  {4, 30, LAN_LUOT},
+  {4, 60, CUNG_LUC},
+  {2, 75, CUNG_LUC},
+  {1, 120, CUNG_LUC},
+  {2, 95, CUNG_LUC},
+  {3, 90, CUNG_LUC},
+""",
+    "empty_table": "",
+    "invalid_table": """
+  {0, 180, LAN_LUOT},
+  {255, 0, CUNG_LUC},
+  {5, 180, LAN_LUOT},
+  {1, 135, LAN_LUOT},
+  {0, 0, CUNG_LUC},
+  {2, 45, CUNG_LUC},
+  {255, 0, LAN_LUOT},
+  {3, 60, LAN_LUOT},
+  {5, 0, CUNG_LUC},
+""",
+}
+table_pattern = r"^(const BuocQuay DONG_TAC_1\[\]\s*=\s*)\{[\s\S]*?^\};"
+for suffix, rows in tables.items():
+    variants[suffix] = replace_once(
+        source, table_pattern, lambda match: match.group(1) + "{" + rows + "\n};",
+        "DONG_TAC_1[]")
+
+for suffix, variant in variants.items():
     pathlib.Path(f"build/test_17_{suffix}.inc").write_text(variant, encoding="utf-8")
 PY
 then
-  for suffix in zero_gap zero_speed zero_both; do
+  for suffix in zero_gap zero_speed zero_both custom_table empty_table invalid_table; do
     case "$suffix" in
       zero_gap) macro=TEST_17_ZERO_GAP; label="SET_GAP_MS=0" ;;
-      zero_speed) macro=TEST_17_ZERO_SPEED; label="MOVE_SPEED_DEG_S=0" ;;
-      zero_both) macro=TEST_17_ZERO_BOTH; label="SET_GAP_MS=0, MOVE_SPEED_DEG_S=0" ;;
+      zero_speed) macro=TEST_17_ZERO_SPEED; label="mọi TOC_DO_DEG_S[]=0" ;;
+      zero_both) macro=TEST_17_ZERO_BOTH; label="SET_GAP_MS=0, mọi TOC_DO_DEG_S[]=0" ;;
+      custom_table) macro=TEST_17_CUSTOM_TABLE; label="nhóm cùng lúc, lặp servo, tự về cả 4 base" ;;
+      empty_table) macro=TEST_17_EMPTY_TABLE; label="bảng bước rỗng" ;;
+      invalid_table) macro=TEST_17_INVALID_TABLE; label="bỏ qua số servo 0/5/255" ;;
     esac
     echo "-- test_17_dong_tac_gap_do ($label)"
     if g++ -std=gnu++11 -O1 -Itests/mock "-D$macro" tests/test_17_dong_tac_gap_do.cpp tests/mock/globals.cpp -o "build/test_17_$suffix"; then

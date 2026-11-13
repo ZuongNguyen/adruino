@@ -76,8 +76,8 @@ Lời giao việc nói rõ ChatGPT cần kiểm tra gì:
 
 ## 6. Đóng gói và trả lời người dùng
 
-**ĐẠT** thì commit trên nhánh worktree, gộp vào `main`, đẩy lên GitHub theo mục "Bắt buộc: worktree…" trong `CLAUDE.md`
-(người dùng đã đồng ý trước, không hỏi lại).
+Gửi file `sketch.ino` cho người dùng ngay khi viết xong (ghi rõ "chưa qua ChatGPT"), rồi gửi lại khi ChatGPT báo **ĐẠT**
+kèm: bảng nối dây, thông số chỉnh nhanh, cảnh báo phần cứng liên quan, tóm tắt báo cáo ChatGPT (Flash/RAM, điều chưa kiểm tra được).
 
-Gửi người dùng: bảng nối dây, cách dán vào Wokwi/Tinkercad, thông số chỉnh nhanh, cảnh báo phần cứng liên quan,
-tóm tắt báo cáo ChatGPT (Flash/RAM, điều chưa kiểm tra được), commit đã lên GitHub.
+**Chờ người dùng xem code và nói ổn** rồi mới commit trên nhánh worktree, gộp vào `main`, đẩy lên GitHub theo mục
+"Bắt buộc: worktree…" trong `CLAUDE.md` (người dùng đổi ngày 13/11/2026). Không tự dán vào Tinkercad chạy thử trừ khi được yêu cầu.
