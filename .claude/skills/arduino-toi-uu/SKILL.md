@@ -6,14 +6,14 @@ description: Tối ưu sketch Arduino Uno trong dự án adruino – đo Flash/R
 # Tối ưu sketch Arduino Uno
 
 Trả lời bằng tiếng Việt. Quy ước code nằm trong `CLAUDE.md`. Tối ưu là **sửa ngay trên file của bản đó**, không tạo thư mục hay bản sao mới.
+Làm trong worktree riêng (`EnterWorktree`, tên kiểu `toi-uu-ban-NN`). Claude chỉ sửa code; đo và kiểm tra là việc của ChatGPT
+(mục "Bắt buộc: worktree…" trong `CLAUDE.md`).
 
-## 1. Đo trước khi sửa
+## 1. Số đo trước khi sửa
 
-```bash
-bash tests/compile_uno.sh
-```
-
-Ghi lại Flash/RAM của bản cần tối ưu. Giới hạn của Uno: Flash 32 256 byte, RAM 2 048 byte.
+Lấy Flash/RAM hiện tại của bản cần tối ưu từ ghi chú trong `CLAUDE.md` hoặc báo cáo ChatGPT gần nhất. Chưa có thì giao ChatGPT đo
+trước: `bash scripts/chatgpt-kiem-tra.sh "Chỉ đo Flash/RAM bản NN trước khi tối ưu, chưa đổi gì"`.
+Giới hạn của Uno: Flash 32 256 byte, RAM 2 048 byte.
 
 Chỉ giảm bộ nhớ khi có lý do thật: RAM trên 75 %, Flash trên 85 %, hoặc sắp thêm thư viện lớn. Các bản hiện tại chỉ dùng Flash 3–11 %, RAM tối đa 15 %, nên thường nên ưu tiên **dễ đọc** và **bỏ code lặp** hơn là ép từng byte. Nếu không có gì đáng tối ưu thì nói thẳng với người dùng.
 
@@ -42,12 +42,13 @@ Chỉ giảm bộ nhớ khi có lý do thật: RAM trên 75 %, Flash trên 85 %,
 - Không đổi hành vi: thời gian, góc, thứ tự chân, số vòng hiệu ứng phải giữ nguyên.
 - Không gộp hiệu ứng hay bỏ thông số chỉnh được ở đầu file chỉ để code ngắn hơn.
 
-## 5. Kiểm tra và báo kết quả
+## 5. Giao kiểm tra và báo kết quả
+
+Có thể dùng `/simplify` để rà code lặp trước. Rồi giao ChatGPT:
 
 ```bash
-bash tests/run_all.sh
+bash scripts/chatgpt-kiem-tra.sh "Tối ưu bản NN: <đổi gì>. Trước: Flash x %, RAM y %. Kiểm tra hành vi không đổi, đo lại Flash/RAM."
 ```
 
-Phải ra **TẤT CẢ ĐẠT**. Báo bảng Flash/RAM trước và sau cho bản đã sửa, cùng các thay đổi chính. Thay đổi không giảm được gì đáng kể mà làm code khó đọc hơn thì hoàn tác. Đề nghị commit (chỉ commit khi người dùng đồng ý).
-
-Có thể dùng thêm `/simplify` để rà code lặp và `/code-review` để tìm lỗi trên phần vừa sửa.
+Phải **ĐẠT**. Báo bảng Flash/RAM trước và sau (lấy từ báo cáo), cùng các thay đổi chính. Thay đổi không giảm được gì đáng kể mà
+làm code khó đọc hơn thì hoàn tác. ĐẠT thì commit, gộp `main`, đẩy lên GitHub theo `CLAUDE.md`.

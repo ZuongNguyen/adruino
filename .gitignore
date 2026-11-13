@@ -4,3 +4,9 @@ build/
 *.o
 *.hex
 *.elf
+
+# Worktree của các phiên Claude Code
+.claude/worktrees/
+
+# Báo cáo kiểm tra của ChatGPT, chỉ để Claude đọc trước khi commit
+.chatgpt/

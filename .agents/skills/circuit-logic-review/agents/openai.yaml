@@ -1,0 +1,7 @@
+interface:
+  display_name: "Circuit Logic Review"
+  short_description: "Match circuit behavior, pin mapping and Arduino code"
+  default_prompt: "Dùng $circuit-logic-review để đối chiếu sơ đồ, chân Arduino và logic code của mạch này."
+
+policy:
+  allow_implicit_invocation: true

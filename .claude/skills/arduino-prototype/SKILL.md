@@ -1,6 +1,6 @@
 ---
 name: arduino-prototype
-description: Quy trình làm hoặc sửa một prototype Arduino Uno trong dự án adruino (Wokwi/Tinkercad) – chốt mạch và chân, kiểm tra an toàn phần cứng, viết sketch theo quy ước, test giả lập, biên dịch thật cho Uno, cập nhật README. Dùng khi người dùng nói "làm bản 09", "thêm hiệu ứng", "đổi chức năng bản NN", gửi ảnh mạch Tinkercad, hoặc hỏi nối dây/chân cho dự án này.
+description: Quy trình làm hoặc sửa một prototype Arduino Uno trong dự án adruino (Wokwi/Tinkercad) – chốt mạch và chân, kiểm tra an toàn phần cứng, viết sketch theo quy ước trong worktree riêng, cập nhật README, giao ChatGPT kiểm tra, rồi commit và đẩy lên GitHub. Dùng khi người dùng nói "làm bản 09", "thêm hiệu ứng", "đổi chức năng bản NN", gửi ảnh mạch Tinkercad, hoặc hỏi nối dây/chân cho dự án này.
 ---
 
 # Làm prototype Arduino Uno
@@ -12,6 +12,8 @@ Quy ước code và an toàn phần cứng nằm trong `CLAUDE.md` ở thư mụ
 - Hỏi người dùng tên dự án và **chờ trả lời**, kể cả khi đề bài và ảnh mạch đã rõ. Không tự đặt tên.
 - So tên với các thư mục `prototype-*` đã có. Trùng hoặc gần giống (cùng mạch, cùng bài) thì hỏi: sửa bản cũ hay tạo bản mới.
 - Chỉ sửa lỗi một bản đã có thì không tạo gì mới, chuyển sang skill `arduino-sua-loi`. Tối ưu thì dùng `arduino-toi-uu`.
+- Có tên rồi thì vào worktree trước khi sửa file: phiên đang ở thư mục chính thì gọi `EnterWorktree` với tên không dấu
+  (ví dụ `ban-16-ten-du-an`). Chia việc Claude/ChatGPT xem mục "Bắt buộc: worktree…" trong `CLAUDE.md`.
 
 ## 1. Chốt mạch trước khi viết code
 
@@ -45,28 +47,37 @@ Tinkercad/Wokwi **không** mô phỏng giới hạn dòng, nên chạy được 
 - Không `static_assert`/`constexpr` (Tinkercad); kiểm tra lúc chạy như `if (SHOW_MS == 0) return;`.
 - Bắt chước bản gần nhất cùng loại: LED → bản 07, servo → bản 08, nút + LCD → bản 02.
 
-## 4. Kiểm tra
+- Thư viện mới → Claude cài `arduino-cli lib install "<tên>"` và thêm `libraries.txt` cho Wokwi; mock trong `tests/mock/` để ChatGPT viết.
 
-```bash
-bash tests/run_all.sh
-```
-
-Chạy 4 bước: `check_pins.py` (chân), `compile_all.sh` (g++ giả lập), mọi `tests/test_*.cpp`, `compile_uno.sh` (arduino-cli cho ATmega328P, in Flash/RAM). Phải ra **TẤT CẢ ĐẠT**.
-
-- Logic theo thời gian → viết `tests/test_NN_ten.cpp` theo mẫu `test_07_chay.cpp` / `test_08_servo.cpp`:
-  chạy 2 chu kỳ từng ms, kiểm tra không nhảy giá trị (ngưỡng tính từ thông số, không gõ số cố định),
-  điểm chuyển hiệu ứng, thứ tự trái → phải, khoảng dừng.
-- Cần hàm Arduino mới (`Serial`, `tone`, `pulseIn`…) → bổ sung vào `tests/mock/Arduino.h`.
-- Thư viện mới → `arduino-cli lib install "<tên>"`, thêm `libraries.txt` cho Wokwi và mock trong `tests/mock/`.
-- RAM > 75% thì báo người dùng.
-- Test fail: sửa sketch nếu là lỗi thật; chỉ nới ngưỡng test khi giải thích được vì sao giá trị đó vẫn đúng.
-
-## 5. Cập nhật tài liệu
+## 4. Cập nhật tài liệu
 
 1. `README.md`: dòng mới trong bảng đầu, mục **Sơ đồ nối dây**, gạch đầu dòng ở **Logic chính**, **Xử lý sự cố** nếu có lỗi mới.
 2. `CLAUDE.md`: dòng mới trong bảng **Tiến trình**, ghi chú chân chưa xác nhận và ý tưởng người dùng chưa chốt.
-3. Đề nghị commit git (chỉ commit khi người dùng đồng ý).
 
-## 6. Trả lời người dùng
+## 5. Giao ChatGPT kiểm tra
 
-Gửi kèm: bảng nối dây, cách dán vào Wokwi/Tinkercad, thông số chỉnh nhanh, cảnh báo phần cứng liên quan, kết quả test (Flash/RAM).
+Claude **không** tự chạy `tests/run_all.sh` hay viết test. Giao cho ChatGPT, chạy nền vì mất vài phút:
+
+```bash
+bash scripts/chatgpt-kiem-tra.sh "Thêm bản NN: <làm gì>. Cần test: <...>"
+```
+
+Lời giao việc nói rõ ChatGPT cần kiểm tra gì:
+- Logic theo thời gian → test `tests/test_NN_ten.cpp` theo mẫu `test_07_chay.cpp` / `test_08_servo.cpp`: chạy 2 chu kỳ từng ms,
+  không nhảy giá trị (ngưỡng tính từ thông số), điểm chuyển hiệu ứng, thứ tự trái → phải, khoảng dừng.
+- Có nút → nhấn, nhả, giữ nút, nhấn lần hai, dội phím (mẫu `test_13_nut_bat_tat.cpp`).
+- Hàm Arduino mới (`Serial`, `tone`, `pulseIn`…) hoặc thư viện mới → cần thêm mock.
+
+Đọc `.chatgpt/bao-cao.md`:
+- **CHƯA ĐẠT**: sửa sketch đúng lỗi được báo rồi giao lại. Nghĩ ChatGPT sai (test đặt ngưỡng sai, hiểu sai đề) thì nói với
+  người dùng kèm lý do, không tự bỏ qua. 3 vòng chưa đạt thì dừng, hỏi người dùng.
+- RAM > 75 % thì báo người dùng.
+- Script trả mã 2 (ChatGPT không chạy được) → báo người dùng, không tự chạy test thay.
+
+## 6. Đóng gói và trả lời người dùng
+
+**ĐẠT** thì commit trên nhánh worktree, gộp vào `main`, đẩy lên GitHub theo mục "Bắt buộc: worktree…" trong `CLAUDE.md`
+(người dùng đã đồng ý trước, không hỏi lại).
+
+Gửi người dùng: bảng nối dây, cách dán vào Wokwi/Tinkercad, thông số chỉnh nhanh, cảnh báo phần cứng liên quan,
+tóm tắt báo cáo ChatGPT (Flash/RAM, điều chưa kiểm tra được), commit đã lên GitHub.

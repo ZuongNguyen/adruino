@@ -1,11 +1,14 @@
 ---
 name: arduino-sua-loi
-description: Sửa lỗi một sketch Arduino Uno đã có trong dự án adruino, ngay trên file cũ thay vì tạo file mới – phân loại triệu chứng, tái hiện bằng test, sửa tối thiểu, chạy lại kiểm tra. Dùng khi người dùng báo "lỗi", "không chạy", "không biên dịch được", "nút không ăn", "servo giật", "Arduino tự reset", "LED không sáng", "sửa bản NN", hoặc dán thông báo lỗi của Arduino IDE.
+description: Sửa lỗi một sketch Arduino Uno đã có trong dự án adruino, ngay trên file cũ thay vì tạo file mới – phân loại triệu chứng, sửa tối thiểu trong worktree, giao ChatGPT tái hiện và kiểm tra lại, rồi commit và đẩy lên GitHub. Dùng khi người dùng báo "lỗi", "không chạy", "không biên dịch được", "nút không ăn", "servo giật", "Arduino tự reset", "LED không sáng", "sửa bản NN", hoặc dán thông báo lỗi của Arduino IDE.
 ---
 
 # Sửa lỗi sketch Arduino Uno
 
 Trả lời bằng tiếng Việt. **Sửa ngay trong file của bản đang lỗi.** Không tạo bản sao, thư mục mới hay số bản mới. Chưa rõ người dùng nói bản nào thì hỏi lại, đừng đoán.
+
+Làm trong worktree riêng (phiên đang ở thư mục chính thì `EnterWorktree`, tên kiểu `sua-ban-NN`). Claude chỉ sửa code;
+tái hiện lỗi, viết test và chạy kiểm tra là việc của ChatGPT, xem mục "Bắt buộc: worktree…" trong `CLAUDE.md`.
 
 ## 1. Phân loại triệu chứng
 
@@ -24,19 +27,22 @@ Trả lời bằng tiếng Việt. **Sửa ngay trong file của bản đang l�
 
 Xem thêm mục **Xử lý sự cố** trong `README.md`. Trong `CLAUDE.md`, nhiều bản có chân đọc từ ảnh và **chưa xác nhận**: nghi sai chân thì hỏi người dùng trước khi sửa code.
 
-## 2. Tái hiện trước khi sửa
+## 2. Tìm nguyên nhân
 
-- Lỗi logic: thêm trường hợp vào `tests/test_NN_*.cpp` để test **fail** đúng như lỗi, rồi mới sửa.
-- Lỗi biên dịch: chạy `bash tests/compile_uno.sh` để thấy đúng thông báo.
+- Đọc code đối chiếu bảng trên. Nguyên nhân rõ thì sửa luôn (bước 3).
+- Chưa rõ, hoặc là lỗi logic khó thấy: giao ChatGPT tái hiện trước, chưa sửa gì:
+  `bash scripts/chatgpt-kiem-tra.sh "Tái hiện lỗi <triệu chứng> ở bản NN: viết test fail đúng như lỗi, chưa sửa sketch"`.
+  Lỗi biên dịch thì nhờ ChatGPT chép nguyên thông báo của `compile_uno.sh` vào báo cáo.
 - Lỗi phần cứng: không viết test được, nói rõ cần người dùng kiểm tra gì trên mạch.
 - Cần xem giá trị trên mạch thật: tạm thêm `Serial.begin(9600)` và `Serial.println(F("..."))`, tránh chân 0, 1, rồi **xóa** sau khi tìm ra lỗi.
 
-## 3. Sửa và kiểm tra
+## 3. Sửa và giao kiểm tra
 
 - Chỉ sửa phần gây lỗi, giữ đúng quy ước trong `CLAUDE.md`, không tiện tay viết lại chỗ khác.
-- Chạy `bash tests/run_all.sh`, phải ra **TẤT CẢ ĐẠT**.
 - Có lỗi dễ gặp mới thì thêm vào **Xử lý sự cố** trong `README.md`.
+- Giao ChatGPT: `bash scripts/chatgpt-kiem-tra.sh "Sửa bản NN: <lỗi gì, sửa dòng nào>. Viết test chặn lỗi này tái diễn."`.
+  CHƯA ĐẠT thì sửa tiếp và giao lại; ĐẠT thì commit, gộp `main`, đẩy lên GitHub theo `CLAUDE.md`, lời nhắn `Sửa bản NN: <lỗi đã sửa>`.
 
 ## 4. Báo kết quả
 
-Nói: nguyên nhân, dòng đã sửa, file nào cần mở lại hoặc dán lại vào Wokwi/Tinkercad, điều gì chưa kiểm tra được trên mạch thật. Nhắc cảnh báo phần cứng nếu liên quan. Đề nghị commit với lời nhắn dạng `Sửa bản NN: <lỗi đã sửa>`, chỉ commit và push khi người dùng đồng ý.
+Nói: nguyên nhân, dòng đã sửa, file nào cần mở lại hoặc dán lại vào Wokwi/Tinkercad, tóm tắt báo cáo ChatGPT, điều gì chưa kiểm tra được trên mạch thật, commit đã lên GitHub. Nhắc cảnh báo phần cứng nếu liên quan.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Arduino Wiring Check"
+  short_description: "Check Arduino wiring, polarity, power and GPIO"
+  default_prompt: "Dùng $arduino-wiring-check để kiểm tra cách đấu dây, nguồn và cực linh kiện của mạch này."
+
+policy:
+  allow_implicit_invocation: true
