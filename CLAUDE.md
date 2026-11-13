@@ -103,7 +103,7 @@ chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `ma
 | 13 | 2 nút bật/tắt 2 LED: nút 1 (chân 2) → LED đỏ (4), nút 2 (chân 3) → LED xanh (5) | Xong |
 | 14 | Mạch thử nghiệm 1 servo qua PCA9685 (kênh 0, I2C A4/A5): quét đều + đi từng nấc 45° | Xong |
 | 15 | Test servo 11/10: 1 servo chân 3, reset về 0° đứng 1 s rồi quét 0° ↔ 180° mãi | Xong |
-| 16 | Reset 5 servo: chân 5, 6, 9, 10, 11 (servo 1 → 5) về 0° lần lượt, cách nhau 0,5 s, rồi giữ 0° | Xong |
+| 16 | Reset 5 servo: chân 5, 6, 9, 10, 11 (servo 1 → 5) về 0° lần lượt, cách nhau 0,5 s; rồi servo 2, 3 lần lượt quay chậm lên 45° (3 s mỗi servo) | Xong |
 
 Ngày 27/10/2026, cả 8 bản qua `tests/run_all.sh`: chân, g++ giả lập, test logic 05–08, arduino-cli cho Uno.
 Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
@@ -154,9 +154,13 @@ Arduino. Quy ước của người dùng: servo 1 → 5 theo chân tín hiệu 5
 servo dưới cùng trong ảnh. Dùng quy ước này cho các đề sau trên mạch này. Dây đọc từ ảnh, chưa thử trên mạch thật.
 Người dùng chọn kiểu về lần lượt 1 → 5 (`RESET_GAP_MS` = 500 ms, đặt 0 để về cùng lúc). Cách làm: `write(0)` trước `attach()`
 cho xung đầu đã là 0° (không qua 90° mặc định), servo chưa tới lượt chưa `attach()` nên vẫn có điện nhưng chưa có xung điều khiển, chưa kéo dòng để quay.
-Sau khi cả 5 đã `attach()` thì `loop()` không còn việc gì, nên không bị ảnh hưởng khi `millis()` tràn. Flash 5 %, RAM 3 %.
+Bản reset đầu tiên (chỉ về 0°): Flash 5 %, RAM 3 %.
 ChatGPT sửa mock `Servo.h` (nhớ góc ghi trước `attach()`, ghi lại lần attach), viết `tests/test_16_reset_5_servo.cpp` và
 `tests/test_mock_servo.cpp`, `run_all.sh` chạy thêm biến thể `RESET_GAP_MS = 0` trong `build/`. Cả 16 bản qua `tests/run_all.sh` ngày 13/11/2026.
+Cùng ngày người dùng yêu cầu thêm "cho servo 2, 3 quay lần lượt 1 góc 45 độ, set tốc độ servo chậm lại" và chọn **sửa thẳng bản 16**
+(không tạo bản mới), quay một lần rồi đứng yên, 45° trong 3 giây. Sau reset chờ `RESET_HOLD_MS` = 0,5 s, servo 2 quay 2,5–5,5 s, nghỉ
+`MOVE_PAUSE_MS`, servo 3 quay 6–9 s; `MOVE_SERVOS[]` ghi theo số servo 1 → 5. Bước reset vẫn quay hết tốc độ vì chưa biết góc ban đầu.
+Cờ `xong` cho `loop()` thôi tính toán sau 9 s.
 
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
