@@ -5,6 +5,8 @@ int servo_angle[16];
 int servo_writes = 0;
 #include "Servo.h"
 int Servo::count = 0;
+int servo_attaches = 0;
+ServoMockTrace servo_trace[16];
 #include "Adafruit_PWMServoDriver.h"
 bool pca_present = true;
 float pca_freq = 0;

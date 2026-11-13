@@ -30,6 +30,30 @@ for t in tests/test_*.cpp; do
   fi
 done
 
+# Kiểm tra cấu hình gap 0 bằng đúng sketch/test 16, chỉ đổi hằng trong bản sinh ở build/.
+echo "-- test_16_reset_5_servo (RESET_GAP_MS=0)"
+if python -I - <<'PY'
+import pathlib
+import re
+
+source = pathlib.Path("prototype-16-reset-5-servo/sketch.ino").read_text(encoding="utf-8")
+variant, count = re.subn(
+    r"^(const unsigned long RESET_GAP_MS\s*=\s*)[^;\n]+;",
+    r"\g<1>0;", source, flags=re.MULTILINE)
+if count != 1:
+    raise SystemExit("LỖI: cần tìm đúng một khai báo RESET_GAP_MS để tạo biến thể gap 0")
+pathlib.Path("build/test_16_zero_gap.inc").write_text(variant, encoding="utf-8")
+PY
+then
+  if g++ -std=gnu++11 -O1 -Itests/mock -DTEST_16_ZERO_GAP tests/test_16_reset_5_servo.cpp tests/mock/globals.cpp -o build/test_16_zero_gap; then
+    ./build/test_16_zero_gap || fail=1
+  else
+    fail=1
+  fi
+else
+  fail=1
+fi
+
 echo; echo "== 4. Biên dịch thật cho Arduino Uno (arduino-cli) =="
 bash tests/compile_uno.sh || fail=1
 

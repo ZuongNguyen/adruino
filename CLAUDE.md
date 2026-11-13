@@ -24,8 +24,9 @@ Người dùng chốt ngày 13/11/2026. Ở dự án này **Claude chỉ viết 
 **ChatGPT** (app Codex trên máy, Claude gọi qua `codex exec`). ChatGPT chỉ báo lỗi và viết test, không sửa sketch.
 Claude không tự chạy `tests/run_all.sh` hay `/code-review` thay ChatGPT.
 
-1. **Worktree.** Mỗi việc (bản mới, sửa lỗi, tối ưu) làm trong worktree riêng `.claude/worktrees/<tên>`, nhánh `claude/<tên>`.
+1. **Worktree.** Mỗi việc (bản mới, sửa lỗi, tối ưu) làm trong worktree riêng `.claude/worktrees/<tên>`.
    Phiên đang ở thư mục chính thì gọi `EnterWorktree` (tên không dấu, ví dụ `ban-16-...`, `sua-ban-12`) trước khi sửa file.
+   `EnterWorktree` tạo nhánh `worktree-<tên>`; worktree do app desktop tạo thì nhánh `claude/<tên>`. Xem tên bằng `git branch --show-current`.
    Worktree tạo từ `main` trên máy (`worktree.baseRef = head` trong `~/.claude/settings.json`).
 2. **Claude code**: sketch, `README.md`, `CLAUDE.md` theo mục "Khi thêm hoặc sửa một prototype".
 3. **Giao ChatGPT**: `bash scripts/chatgpt-kiem-tra.sh "<đã làm gì, bản nào, cần test gì>"`, chạy nền (vài phút).
@@ -37,7 +38,7 @@ Claude không tự chạy `tests/run_all.sh` hay `/code-review` thay ChatGPT.
    - Claude sửa code sau lần ĐẠT cuối thì phải giao ChatGPT lại.
    - Commit trên nhánh worktree, gồm cả test ChatGPT viết. Lời nhắn tiếng Việt kiểu `Thêm bản NN: ...` / `Sửa bản NN: ...`,
      thêm dòng `Kiểm tra: ChatGPT (Codex), tests/run_all.sh ĐẠT`.
-   - Gộp vào main từ thư mục chính (dòng đầu của `git worktree list`): `git -C <thư mục chính> merge --ff-only claude/<tên>`.
+   - Gộp vào main từ thư mục chính (dòng đầu của `git worktree list`): `git -C <thư mục chính> merge --ff-only <nhánh worktree>`.
      Không fast-forward được (main đã đi tiếp) thì `git rebase main` trong worktree; rebase có xung đột thì giao ChatGPT lại.
    - `git -C <thư mục chính> push origin main` lên `ZuongNguyen/adruino`.
    - Báo người dùng: đã làm gì, tóm tắt báo cáo ChatGPT (Flash/RAM, điều chưa kiểm tra được), commit nào đã lên GitHub.
@@ -102,6 +103,7 @@ chưa có g++ trong PATH, `run_all.sh` tự tìm. Dự án dùng git, nhánh `ma
 | 13 | 2 nút bật/tắt 2 LED: nút 1 (chân 2) → LED đỏ (4), nút 2 (chân 3) → LED xanh (5) | Xong |
 | 14 | Mạch thử nghiệm 1 servo qua PCA9685 (kênh 0, I2C A4/A5): quét đều + đi từng nấc 45° | Xong |
 | 15 | Test servo 11/10: 1 servo chân 3, reset về 0° đứng 1 s rồi quét 0° ↔ 180° mãi | Xong |
+| 16 | Reset 5 servo: chân 5, 6, 9, 10, 11 (servo 1 → 5) về 0° lần lượt, cách nhau 0,5 s, rồi giữ 0° | Xong |
 
 Ngày 27/10/2026, cả 8 bản qua `tests/run_all.sh`: chân, g++ giả lập, test logic 05–08, arduino-cli cho Uno.
 Flash 3–11 %, RAM tối đa 15 % (bản 02, LCD).
@@ -147,13 +149,22 @@ giai đoạn reset, servo giật 180° → 0°; ChatGPT viết `tests/test_15_ro
 phép trừ unsigned, `angleAt(t)` nhận thời gian trong vòng. Các bản 06, 07 (LED) và 08, 09, 14 (servo) tính pha bằng
 `millis() % chu kỳ` nên cũng lệch pha một lần khi tràn (servo giật một cái); chưa sửa, chờ người dùng quyết.
 
+**Ghi chú bản 16 (13/11/2026):** tên do người dùng đặt ("reset 5 servo"). Mạch Tinkercad 5 servo mới, servo xếp dọc bên phải
+Arduino. Quy ước của người dùng: servo 1 → 5 theo chân tín hiệu 5, 6, 9, 10, 11, nên `SERVO_PINS[] = {5, 6, 9, 10, 11}` và servo 1 là
+servo dưới cùng trong ảnh. Dùng quy ước này cho các đề sau trên mạch này. Dây đọc từ ảnh, chưa thử trên mạch thật.
+Người dùng chọn kiểu về lần lượt 1 → 5 (`RESET_GAP_MS` = 500 ms, đặt 0 để về cùng lúc). Cách làm: `write(0)` trước `attach()`
+cho xung đầu đã là 0° (không qua 90° mặc định), servo chưa tới lượt chưa `attach()` nên vẫn có điện nhưng chưa có xung điều khiển, chưa kéo dòng để quay.
+Sau khi cả 5 đã `attach()` thì `loop()` không còn việc gì, nên không bị ảnh hưởng khi `millis()` tràn. Flash 5 %, RAM 3 %.
+ChatGPT sửa mock `Servo.h` (nhớ góc ghi trước `attach()`, ghi lại lần attach), viết `tests/test_16_reset_5_servo.cpp` và
+`tests/test_mock_servo.cpp`, `run_all.sh` chạy thêm biến thể `RESET_GAP_MS = 0` trong `build/`. Cả 16 bản qua `tests/run_all.sh` ngày 13/11/2026.
+
 **Ý tưởng đã đề xuất, người dùng chưa chốt:** hiệu ứng thứ 3 cho bản 08 (sóng chạy ngược phải → trái),
 làm mềm chuyển động servo ở hai đầu (easing). Chưa làm gì cho đến khi người dùng yêu cầu.
 
 ## Quy ước code (giữ đúng khi viết prototype mới)
 
 - Thư mục mới: `prototype-NN-ten-khong-dau/sketch.ino`, tên do người dùng đặt (xem mục bắt buộc ở đầu file),
-  NN tăng dần (bản tiếp theo là 16).
+  NN tăng dần (bản tiếp theo là 17).
 - Đầu file: một dòng mô tả `– Arduino Uno`, rồi khối `// Mạch:` liệt kê từng dây nối, rồi mô tả hiệu ứng.
 - Comment tiếng Việt có dấu; tên hằng/hàm theo kiểu đã có (`SO_LE_`, `CHAY_`, `DONG_BO_`, `SONG_`,
   `levelSoLe()`, `angleAt()`), tên tiếng Việt không dấu khi là tên hiệu ứng.

@@ -10,7 +10,7 @@ Quy ước code, an toàn phần cứng và ghi chú từng bản (chân nào ch
 | Claude | Viết và sửa code (`prototype-*/`), cập nhật `README.md`, `CLAUDE.md`, commit và đẩy lên GitHub |
 | ChatGPT (bạn) | Kiểm tra lỗi và thử nghiệm: chạy bộ kiểm tra, rà code, viết thêm test, báo cáo |
 
-Claude làm mỗi việc trong một worktree riêng (`.claude/worktrees/<tên>`, nhánh `claude/<tên>`) rồi gọi bạn bằng
+Claude làm mỗi việc trong một worktree riêng (`.claude/worktrees/<tên>`, nhánh `worktree-<tên>` hoặc `claude/<tên>`) rồi gọi bạn bằng
 `bash scripts/chatgpt-kiem-tra.sh`. Bạn đang chạy ngay trong worktree đó.
 
 ## Được và không được
